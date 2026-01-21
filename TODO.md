@@ -1,5 +1,9 @@
 # TODO
 
+## Done
+- [x] Token usage tracking (per message, per session, per model)
+- [x] Token usage page with totals and breakdowns
+
 ## Analytics & Visualization
 - [ ] Token usage charts over time (daily/weekly/monthly)
 - [ ] Tool usage heatmap (which tools used when)

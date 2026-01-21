@@ -147,6 +147,20 @@ class LogProcessor:
                 FOREIGN KEY (session_id) REFERENCES sessions(id)
             );
 
+            -- Token usage per message
+            CREATE TABLE IF NOT EXISTS token_usage (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                message_sequence INTEGER,
+                timestamp TEXT,
+                model TEXT,
+                input_tokens INTEGER DEFAULT 0,
+                output_tokens INTEGER DEFAULT 0,
+                cache_read_tokens INTEGER DEFAULT 0,
+                cache_creation_tokens INTEGER DEFAULT 0,
+                FOREIGN KEY (session_id) REFERENCES sessions(id)
+            );
+
             -- Create indexes for common queries
             CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id);
             CREATE INDEX IF NOT EXISTS idx_messages_role ON messages(role);
@@ -156,6 +170,8 @@ class LogProcessor:
             CREATE INDEX IF NOT EXISTS idx_file_changes_path ON file_changes(file_path);
             CREATE INDEX IF NOT EXISTS idx_prompt_history_project ON prompt_history(project_path);
             CREATE INDEX IF NOT EXISTS idx_prompt_history_timestamp ON prompt_history(timestamp_ms);
+            CREATE INDEX IF NOT EXISTS idx_token_usage_session ON token_usage(session_id);
+            CREATE INDEX IF NOT EXISTS idx_token_usage_model ON token_usage(model);
 
             -- Full-text search on message content
             CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(
@@ -298,8 +314,11 @@ class LogProcessor:
         session_id = filepath.stem
         messages = []
         tool_calls = []
+        token_usage = []
         first_ts = None
         last_ts = None
+        total_input_tokens = 0
+        total_output_tokens = 0
 
         # Extract project path from parent directory name (e.g., -Users-olivier-project -> /Users/olivier/project)
         project_path = None
@@ -333,8 +352,29 @@ class LogProcessor:
                     'content_type': 'text'
                 })
 
-                # Extract tool_use blocks from assistant messages
+                # Extract token usage from assistant messages
                 if entry_type == 'assistant':
+                    usage = msg_data.get('usage', {})
+                    if usage:
+                        input_tokens = usage.get('input_tokens', 0)
+                        output_tokens = usage.get('output_tokens', 0)
+                        cache_read = usage.get('cache_read_input_tokens', 0)
+                        cache_creation = usage.get('cache_creation_input_tokens', 0)
+
+                        total_input_tokens += input_tokens
+                        total_output_tokens += output_tokens
+
+                        token_usage.append({
+                            'message_sequence': msg_sequence,
+                            'timestamp': ts,
+                            'model': msg_data.get('model', 'unknown'),
+                            'input_tokens': input_tokens,
+                            'output_tokens': output_tokens,
+                            'cache_read_tokens': cache_read,
+                            'cache_creation_tokens': cache_creation
+                        })
+
+                    # Extract tool_use blocks from assistant messages
                     content = msg_data.get('content', [])
                     if isinstance(content, list):
                         for block in content:
@@ -377,8 +417,9 @@ class LogProcessor:
             'ended_at': last_ts,
             'messages': messages,
             'tool_calls': tool_calls,
-            'tokens_in': 0,
-            'tokens_out': 0,
+            'token_usage': token_usage,
+            'tokens_in': total_input_tokens,
+            'tokens_out': total_output_tokens,
             'metadata': {'source': 'jsonl', 'line_count': len(lines)}
         }
 
@@ -535,11 +576,31 @@ class LogProcessor:
                             tc.get('success', 1)
                         ))
             
+            # Import token usage
+            for tu in parsed.get('token_usage', []):
+                conn.execute('''
+                    INSERT INTO token_usage
+                    (session_id, message_sequence, timestamp, model,
+                     input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    parsed['session_id'],
+                    tu.get('message_sequence'),
+                    tu.get('timestamp'),
+                    tu.get('model'),
+                    tu.get('input_tokens', 0),
+                    tu.get('output_tokens', 0),
+                    tu.get('cache_read_tokens', 0),
+                    tu.get('cache_creation_tokens', 0)
+                ))
+
             # Auto-generate tags based on content
             self._generate_tags(conn, parsed)
-            
+
             conn.commit()
-            logger.info(f"Imported session {parsed['session_id']} with {len(parsed.get('messages', []))} messages")
+            tokens_in = parsed.get('tokens_in', 0)
+            tokens_out = parsed.get('tokens_out', 0)
+            logger.info(f"Imported session {parsed['session_id']} with {len(parsed.get('messages', []))} messages, {tokens_in:,} in / {tokens_out:,} out tokens")
             
         except Exception as e:
             conn.rollback()

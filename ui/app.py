@@ -197,6 +197,7 @@ INDEX_TEMPLATE = '''
             <h1>Claude Code Insights</h1>
             <nav>
                 <a href="/">Dashboard</a>
+                <a href="/tokens">Tokens</a>
                 <a href="/search">Search</a>
                 <a href="/plans">Plans</a>
                 <a href="http://localhost:8001" target="_blank">Datasette</a>
@@ -221,6 +222,14 @@ INDEX_TEMPLATE = '''
             <div class="stat-card">
                 <h3>Unique Tools</h3>
                 <div class="value">{{ stats.unique_tools }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>Input Tokens</h3>
+                <div class="value">{{ "{:,}".format(stats.total_input_tokens) }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>Output Tokens</h3>
+                <div class="value">{{ "{:,}".format(stats.total_output_tokens) }}</div>
             </div>
         </div>
         
@@ -740,6 +749,8 @@ def index():
         'total_messages': conn.execute('SELECT COUNT(*) FROM messages').fetchone()[0],
         'total_tool_calls': conn.execute('SELECT COUNT(*) FROM tool_calls').fetchone()[0],
         'unique_tools': conn.execute('SELECT COUNT(DISTINCT tool_name) FROM tool_calls WHERE tool_name IS NOT NULL').fetchone()[0],
+        'total_input_tokens': conn.execute('SELECT COALESCE(SUM(input_tokens), 0) FROM token_usage').fetchone()[0],
+        'total_output_tokens': conn.execute('SELECT COALESCE(SUM(output_tokens), 0) FROM token_usage').fetchone()[0],
     }
     
     # Get recent sessions with tags
@@ -883,6 +894,7 @@ SEARCH_TEMPLATE = '''
         <h1>Claude Code Insights</h1>
         <nav>
             <a href="/">Dashboard</a>
+            <a href="/tokens">Tokens</a>
             <a href="/search">Search</a>
             <a href="/plans">Plans</a>
             <a href="http://localhost:8001" target="_blank">Datasette</a>
@@ -948,6 +960,7 @@ PLANS_TEMPLATE = '''
         <h1>Claude Code Insights</h1>
         <nav>
             <a href="/">Dashboard</a>
+            <a href="/tokens">Tokens</a>
             <a href="/search">Search</a>
             <a href="/plans">Plans</a>
             <a href="http://localhost:8001" target="_blank">Datasette</a>
@@ -1006,6 +1019,7 @@ PLAN_DETAIL_TEMPLATE = '''
         <h1>Claude Code Insights</h1>
         <nav>
             <a href="/">Dashboard</a>
+            <a href="/tokens">Tokens</a>
             <a href="/search">Search</a>
             <a href="/plans">Plans</a>
             <a href="http://localhost:8001" target="_blank">Datasette</a>
@@ -1115,6 +1129,184 @@ def api_stats():
     conn.close()
 
     return jsonify([dict(s) for s in stats])
+
+
+TOKENS_TEMPLATE = '''
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token Usage - Claude Code Insights</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; background: #f5f5f5; color: #333; }
+        header { background: #1a1a2e; color: white; padding: 20px; }
+        header h1 { margin: 0; font-weight: 300; }
+        header nav { margin-top: 10px; }
+        header nav a { color: #90caf9; margin-right: 20px; text-decoration: none; }
+        header nav a:hover { color: #fff; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .stat-card h3 { margin: 0 0 8px 0; color: #666; font-size: 0.9em; }
+        .stat-card .value { font-size: 2em; font-weight: 300; color: #1a1a2e; }
+        .stat-card .sub { font-size: 0.85em; color: #888; margin-top: 4px; }
+        .data-table { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; margin-bottom: 24px; }
+        .data-table h2 { padding: 16px 20px; margin: 0; border-bottom: 1px solid #eee; font-weight: 500; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px 20px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #fafafa; font-weight: 500; color: #666; }
+        tr:last-child td { border-bottom: none; }
+        .number { text-align: right; font-variant-numeric: tabular-nums; }
+        .model-name { font-family: monospace; background: #f0f0f0; padding: 2px 8px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Claude Code Insights</h1>
+        <nav>
+            <a href="/">Dashboard</a>
+            <a href="/tokens">Tokens</a>
+            <a href="/search">Search</a>
+            <a href="/plans">Plans</a>
+            <a href="http://localhost:8001" target="_blank">Datasette</a>
+        </nav>
+    </header>
+    <div class="container">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Total Input Tokens</h3>
+                <div class="value">{{ "{:,}".format(totals.input_tokens) }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>Total Output Tokens</h3>
+                <div class="value">{{ "{:,}".format(totals.output_tokens) }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>Cache Read Tokens</h3>
+                <div class="value">{{ "{:,}".format(totals.cache_read) }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>Cache Creation Tokens</h3>
+                <div class="value">{{ "{:,}".format(totals.cache_creation) }}</div>
+            </div>
+        </div>
+
+        <div class="data-table">
+            <h2>Token Usage by Model</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Model</th>
+                        <th class="number">Input Tokens</th>
+                        <th class="number">Output Tokens</th>
+                        <th class="number">Cache Read</th>
+                        <th class="number">Cache Creation</th>
+                        <th class="number">Messages</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in by_model %}
+                    <tr>
+                        <td><span class="model-name">{{ row.model }}</span></td>
+                        <td class="number">{{ "{:,}".format(row.input_tokens) }}</td>
+                        <td class="number">{{ "{:,}".format(row.output_tokens) }}</td>
+                        <td class="number">{{ "{:,}".format(row.cache_read) }}</td>
+                        <td class="number">{{ "{:,}".format(row.cache_creation) }}</td>
+                        <td class="number">{{ "{:,}".format(row.message_count) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="data-table">
+            <h2>Recent Sessions by Token Usage</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Session</th>
+                        <th class="number">Input</th>
+                        <th class="number">Output</th>
+                        <th class="number">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in by_session %}
+                    <tr>
+                        <td><a href="/replay/{{ row.session_id }}">{{ row.session_id[:30] }}...</a></td>
+                        <td class="number">{{ "{:,}".format(row.input_tokens) }}</td>
+                        <td class="number">{{ "{:,}".format(row.output_tokens) }}</td>
+                        <td class="number">{{ "{:,}".format(row.input_tokens + row.output_tokens) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
+'''
+
+
+@app.route('/tokens')
+def tokens():
+    """Token usage statistics page."""
+    conn = get_db()
+
+    # Get totals
+    totals_row = conn.execute('''
+        SELECT
+            COALESCE(SUM(input_tokens), 0) as input_tokens,
+            COALESCE(SUM(output_tokens), 0) as output_tokens,
+            COALESCE(SUM(cache_read_tokens), 0) as cache_read,
+            COALESCE(SUM(cache_creation_tokens), 0) as cache_creation
+        FROM token_usage
+    ''').fetchone()
+
+    totals = {
+        'input_tokens': totals_row[0],
+        'output_tokens': totals_row[1],
+        'cache_read': totals_row[2],
+        'cache_creation': totals_row[3]
+    }
+
+    # Get by model
+    by_model = conn.execute('''
+        SELECT
+            model,
+            SUM(input_tokens) as input_tokens,
+            SUM(output_tokens) as output_tokens,
+            SUM(cache_read_tokens) as cache_read,
+            SUM(cache_creation_tokens) as cache_creation,
+            COUNT(*) as message_count
+        FROM token_usage
+        WHERE model IS NOT NULL
+        GROUP BY model
+        ORDER BY SUM(input_tokens) + SUM(output_tokens) DESC
+    ''').fetchall()
+
+    # Get by session (top 20)
+    by_session = conn.execute('''
+        SELECT
+            session_id,
+            SUM(input_tokens) as input_tokens,
+            SUM(output_tokens) as output_tokens
+        FROM token_usage
+        GROUP BY session_id
+        ORDER BY SUM(input_tokens) + SUM(output_tokens) DESC
+        LIMIT 20
+    ''').fetchall()
+
+    conn.close()
+
+    return render_template_string(
+        TOKENS_TEMPLATE,
+        totals=totals,
+        by_model=[dict(r) for r in by_model],
+        by_session=[dict(r) for r in by_session]
+    )
 
 
 if __name__ == '__main__':
