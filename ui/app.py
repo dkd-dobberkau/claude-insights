@@ -602,8 +602,8 @@ REPLAY_TEMPLATE = '''
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
     <script>
-        const messages = {{ messages_json|safe }};
-        const toolCalls = {{ tool_calls_json|safe }};
+        const messages = {{ messages_data|tojson }};
+        const toolCalls = {{ tool_calls_data|tojson }};
         let currentIndex = 0;
         let isPlaying = false;
         let playInterval = null;
@@ -810,17 +810,17 @@ def replay(session_id):
     
     conn.close()
     
-    # Convert to JSON for JavaScript
-    messages_json = json.dumps([dict(m) for m in messages])
-    tool_calls_json = json.dumps([dict(tc) for tc in tool_calls])
+    # Convert to dicts for JavaScript (tojson filter handles escaping)
+    messages_data = [dict(m) for m in messages]
+    tool_calls_data = [dict(tc) for tc in tool_calls]
     tags_list = [t['tag'] for t in tags]
-    
+
     return render_template_string(
         REPLAY_TEMPLATE,
         session=session,
         messages=messages,
-        messages_json=messages_json,
-        tool_calls_json=tool_calls_json,
+        messages_data=messages_data,
+        tool_calls_data=tool_calls_data,
         tags=tags_list
     )
 
