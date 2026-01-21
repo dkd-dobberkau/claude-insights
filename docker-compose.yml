@@ -1,0 +1,50 @@
+services:
+  # Log processor that watches Claude Code logs and imports to SQLite
+  processor:
+    build:
+      context: .
+      dockerfile: Dockerfile.processor
+    volumes:
+      - ${CLAUDE_LOGS_PATH:-~/.claude}:/claude-logs:ro
+      - ./data:/data
+    environment:
+      - WATCH_INTERVAL=${WATCH_INTERVAL:-30}
+      - DB_PATH=/data/sessions.db
+      - LOG_PATH=/claude-logs
+    restart: unless-stopped
+
+  # Datasette for exploring and querying the data
+  datasette:
+    build:
+      context: .
+      dockerfile: Dockerfile.datasette
+    volumes:
+      - ./data:/data:ro
+      - ./datasette:/datasette
+    ports:
+      - "${DATASETTE_PORT:-8001}:8001"
+    command: >
+      datasette /data/sessions.db
+      -p 8001
+      -h 0.0.0.0
+      --metadata /datasette/metadata.yml
+      --static static:/datasette/static
+      --template-dir /datasette/templates
+    depends_on:
+      - processor
+    restart: unless-stopped
+
+  # Replay UI for stepping through sessions
+  replay-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.ui
+    volumes:
+      - ./data:/data:ro
+    ports:
+      - "${UI_PORT:-8002}:8002"
+    environment:
+      - DB_PATH=/data/sessions.db
+    depends_on:
+      - processor
+    restart: unless-stopped

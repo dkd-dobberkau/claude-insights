@@ -1,0 +1,8 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# No external dependencies needed - using only stdlib
+COPY processor/process_logs.py .
+
+CMD ["python", "process_logs.py"]

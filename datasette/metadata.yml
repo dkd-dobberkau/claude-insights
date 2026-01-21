@@ -1,0 +1,168 @@
+title: Claude Code Insights
+description: Personal analytics and replay for Claude Code sessions
+license: MIT
+license_url: https://opensource.org/licenses/MIT
+
+databases:
+  sessions:
+    title: Claude Code Sessions
+    description: Imported sessions from Claude Code logs
+    
+    tables:
+      sessions:
+        title: Sessions
+        description: Individual Claude Code sessions
+        sort_desc: started_at
+        label_column: id
+        
+      messages:
+        title: Messages
+        description: Individual messages within sessions
+        sort: sequence
+        foreign_keys:
+          - session_id: sessions.id
+          
+      tool_calls:
+        title: Tool Calls
+        description: Tools invoked during sessions
+        foreign_keys:
+          - session_id: sessions.id
+          - message_id: messages.id
+          
+      file_changes:
+        title: File Changes
+        description: Files modified during sessions
+        foreign_keys:
+          - session_id: sessions.id
+          
+      session_tags:
+        title: Session Tags
+        description: Tags for categorizing sessions
+        foreign_keys:
+          - session_id: sessions.id
+          
+      insights:
+        title: Insights
+        description: Derived insights from session analysis
+
+    queries:
+      recent_sessions:
+        title: Recent Sessions
+        description: Last 20 sessions ordered by start time
+        sql: |
+          SELECT 
+            s.id,
+            s.project_path,
+            s.started_at,
+            s.total_messages,
+            s.total_tokens_in + s.total_tokens_out as total_tokens,
+            GROUP_CONCAT(DISTINCT t.tag) as tags
+          FROM sessions s
+          LEFT JOIN session_tags t ON s.id = t.session_id
+          GROUP BY s.id
+          ORDER BY s.started_at DESC
+          LIMIT 20
+
+      tool_usage_stats:
+        title: Tool Usage Statistics
+        description: Most frequently used tools
+        sql: |
+          SELECT 
+            tool_name,
+            COUNT(*) as call_count,
+            COUNT(DISTINCT session_id) as session_count,
+            SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as success_count
+          FROM tool_calls
+          WHERE tool_name IS NOT NULL
+          GROUP BY tool_name
+          ORDER BY call_count DESC
+
+      sessions_by_tag:
+        title: Sessions by Tag
+        description: Count sessions per tag
+        sql: |
+          SELECT 
+            tag,
+            COUNT(*) as session_count,
+            auto_generated
+          FROM session_tags
+          GROUP BY tag
+          ORDER BY session_count DESC
+
+      daily_activity:
+        title: Daily Activity
+        description: Sessions and messages per day
+        sql: |
+          SELECT 
+            DATE(started_at) as day,
+            COUNT(DISTINCT s.id) as sessions,
+            SUM(s.total_messages) as messages,
+            SUM(s.total_tokens_in + s.total_tokens_out) as tokens
+          FROM sessions s
+          WHERE started_at IS NOT NULL
+          GROUP BY DATE(started_at)
+          ORDER BY day DESC
+          LIMIT 30
+
+      longest_sessions:
+        title: Longest Sessions
+        description: Sessions with the most messages
+        sql: |
+          SELECT 
+            s.id,
+            s.project_path,
+            s.started_at,
+            s.total_messages,
+            GROUP_CONCAT(DISTINCT t.tag) as tags
+          FROM sessions s
+          LEFT JOIN session_tags t ON s.id = t.session_id
+          GROUP BY s.id
+          ORDER BY s.total_messages DESC
+          LIMIT 20
+
+      search_messages:
+        title: Search Messages
+        description: Full-text search across all messages
+        sql: |
+          SELECT 
+            m.session_id,
+            m.role,
+            SUBSTR(m.content, 1, 200) as content_preview,
+            s.started_at
+          FROM messages_fts f
+          JOIN messages m ON f.rowid = m.id
+          JOIN sessions s ON m.session_id = s.id
+          WHERE messages_fts MATCH :search_term
+          ORDER BY s.started_at DESC
+          LIMIT 50
+
+      session_timeline:
+        title: Session Timeline
+        description: Full message sequence for a session
+        sql: |
+          SELECT 
+            m.sequence,
+            m.role,
+            m.content,
+            m.timestamp,
+            (
+              SELECT GROUP_CONCAT(tc.tool_name, ', ')
+              FROM tool_calls tc 
+              WHERE tc.message_id = m.id
+            ) as tools_used
+          FROM messages m
+          WHERE m.session_id = :session_id
+          ORDER BY m.sequence
+
+      files_frequently_modified:
+        title: Frequently Modified Files
+        description: Files that appear most often in sessions
+        sql: |
+          SELECT 
+            file_path,
+            COUNT(*) as change_count,
+            COUNT(DISTINCT session_id) as session_count
+          FROM file_changes
+          GROUP BY file_path
+          ORDER BY change_count DESC
+          LIMIT 30
