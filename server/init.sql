@@ -1,5 +1,5 @@
 -- Users table
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(100) UNIQUE NOT NULL,
     api_key_hash VARCHAR(64) NOT NULL,
@@ -11,7 +11,7 @@ CREATE TABLE users (
 );
 
 -- Sessions table
-CREATE TABLE sessions (
+CREATE TABLE IF NOT EXISTS sessions (
     id VARCHAR(100) PRIMARY KEY,
     user_id INTEGER REFERENCES users(id),
     project_name VARCHAR(100),
@@ -27,7 +27,7 @@ CREATE TABLE sessions (
 );
 
 -- Messages table (only populated for share_level='full')
-CREATE TABLE messages (
+CREATE TABLE IF NOT EXISTS messages (
     id SERIAL PRIMARY KEY,
     session_id VARCHAR(100) REFERENCES sessions(id) ON DELETE CASCADE,
     sequence INTEGER NOT NULL,
@@ -39,7 +39,7 @@ CREATE TABLE messages (
 );
 
 -- Tool usage (always populated)
-CREATE TABLE tool_usage (
+CREATE TABLE IF NOT EXISTS tool_usage (
     id SERIAL PRIMARY KEY,
     session_id VARCHAR(100) REFERENCES sessions(id) ON DELETE CASCADE,
     tool_name VARCHAR(100) NOT NULL,
@@ -49,7 +49,7 @@ CREATE TABLE tool_usage (
 );
 
 -- Session tags
-CREATE TABLE session_tags (
+CREATE TABLE IF NOT EXISTS session_tags (
     session_id VARCHAR(100) REFERENCES sessions(id) ON DELETE CASCADE,
     tag VARCHAR(100) NOT NULL,
     auto_generated BOOLEAN DEFAULT true,
@@ -57,7 +57,7 @@ CREATE TABLE session_tags (
 );
 
 -- Daily aggregated stats for fast dashboard queries
-CREATE TABLE daily_stats (
+CREATE TABLE IF NOT EXISTS daily_stats (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id),
     stat_date DATE NOT NULL,
@@ -70,9 +70,9 @@ CREATE TABLE daily_stats (
 );
 
 -- Indexes
-CREATE INDEX idx_sessions_user ON sessions(user_id);
-CREATE INDEX idx_sessions_started ON sessions(started_at);
-CREATE INDEX idx_tool_usage_session ON tool_usage(session_id);
-CREATE INDEX idx_tool_usage_name ON tool_usage(tool_name);
-CREATE INDEX idx_daily_stats_date ON daily_stats(stat_date);
-CREATE INDEX idx_daily_stats_user ON daily_stats(user_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_started ON sessions(started_at);
+CREATE INDEX IF NOT EXISTS idx_tool_usage_session ON tool_usage(session_id);
+CREATE INDEX IF NOT EXISTS idx_tool_usage_name ON tool_usage(tool_name);
+CREATE INDEX IF NOT EXISTS idx_daily_stats_date ON daily_stats(stat_date);
+CREATE INDEX IF NOT EXISTS idx_daily_stats_user ON daily_stats(user_id);
