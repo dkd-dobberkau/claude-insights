@@ -99,8 +99,11 @@ def delete_user(conn, username: str):
 
 def main():
     import os
+    db_url = os.environ.get("DATABASE_URL", "postgresql://insights:password@localhost/claude_insights")
+    # Strip async driver prefix for psycopg2
+    db_url = db_url.replace("postgresql+asyncpg://", "postgresql://")
     parser = argparse.ArgumentParser(description="Claude Insights User Management")
-    parser.add_argument("--db", default=os.environ.get("DATABASE_URL", "postgresql://insights:password@localhost/claude_insights"))
+    parser.add_argument("--db", default=db_url)
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 

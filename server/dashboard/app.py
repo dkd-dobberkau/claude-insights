@@ -105,9 +105,7 @@ BASE_TEMPLATE = """
 </html>
 """
 
-HOME_TEMPLATE = """
-{% extends "base" %}
-{% block content %}
+HOME_CONTENT = """
 <div class="stats-grid">
     <div class="stat-card">
         <div class="stat-value">{{ stats.total_sessions }}</div>
@@ -145,12 +143,9 @@ HOME_TEMPLATE = """
         </tbody>
     </table>
 </div>
-{% endblock %}
 """
 
-TOOLS_TEMPLATE = """
-{% extends "base" %}
-{% block content %}
+TOOLS_CONTENT = """
 <div class="card">
     <h2>Meistgenutzte Tools (7 Tage)</h2>
     <table>
@@ -171,8 +166,13 @@ TOOLS_TEMPLATE = """
         </tbody>
     </table>
 </div>
-{% endblock %}
 """
+
+
+def render_page(content, **kwargs):
+    """Render a page with the base template."""
+    full_template = BASE_TEMPLATE.replace("{% block content %}{% endblock %}", content)
+    return render_template_string(full_template, **kwargs)
 
 
 @app.route("/health")
@@ -215,9 +215,8 @@ def home():
                 for i, row in enumerate(cur.fetchall())
             ]
 
-    return render_template_string(
-        HOME_TEMPLATE,
-        base=BASE_TEMPLATE,
+    return render_page(
+        HOME_CONTENT,
         active="team",
         stats=stats,
         leaderboard=leaderboard
@@ -243,9 +242,8 @@ def tools():
             tools_data = cur.fetchall()
             max_calls = tools_data[0]["total_calls"] if tools_data else 1
 
-    return render_template_string(
-        TOOLS_TEMPLATE,
-        base=BASE_TEMPLATE,
+    return render_page(
+        TOOLS_CONTENT,
         active="tools",
         tools=tools_data,
         max_calls=max_calls

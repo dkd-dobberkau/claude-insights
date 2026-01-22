@@ -31,10 +31,10 @@ services:
       dockerfile: Dockerfile
     container_name: insights-api
     environment:
-      DATABASE_URL: postgresql://insights:${DB_PASSWORD}@postgres/claude_insights
+      DATABASE_URL: postgresql+asyncpg://insights:${DB_PASSWORD}@postgres/claude_insights
       API_SECRET_KEY: ${API_SECRET_KEY}
     ports:
-      - "8080:8080"
+      - "8083:8080"
     depends_on:
       postgres:
         condition: service_healthy
