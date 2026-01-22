@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(255),
     share_level VARCHAR(20) DEFAULT 'metadata' CHECK (share_level IN ('none', 'metadata', 'full')),
     show_in_leaderboard BOOLEAN DEFAULT true,
+    is_admin BOOLEAN DEFAULT false,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     last_seen_at TIMESTAMPTZ
 );
