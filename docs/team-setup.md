@@ -69,19 +69,26 @@ X-API-Key: <your-api-key>
 
 Team members need to configure their local Claude Code to send data to the server.
 
-### Option 1: Direct API calls
+### Option 1: Claude Insights Agent (Recommended)
+
+Use [claude-insights-agent](https://github.com/dkd-dobberkau/claude-insights-agent) for automatic session sync:
 
 ```bash
-# Upload a session
+# Install and configure the agent
+# See https://github.com/dkd-dobberkau/claude-insights-agent for details
+```
+
+The agent runs locally and automatically uploads new sessions to the team server.
+
+### Option 2: Direct API calls
+
+```bash
+# Upload a session manually
 curl -X POST http://your-server:8080/api/v1/sessions \
   -H "X-API-Key: your-api-key" \
   -H "Content-Type: application/json" \
   -d @session.json
 ```
-
-### Option 2: Automated sync (coming soon)
-
-A client-side daemon that automatically syncs sessions to the server.
 
 ## Backups
 

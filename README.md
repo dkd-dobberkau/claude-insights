@@ -28,6 +28,10 @@ Analytics and replay system for Claude Code sessions. Understand how you and you
 - [Architecture](docs/architecture.md) — Technical details and diagrams
 - [Development](docs/development.md) — Contributing guide
 
+## Related Projects
+
+- [claude-insights-agent](https://github.com/dkd-dobberkau/claude-insights-agent) — Client agent for automatic session sync to team server
+
 ## License
 
 MIT
