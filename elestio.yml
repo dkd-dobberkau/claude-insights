@@ -17,16 +17,24 @@ ports:
     targetProtocol: "HTTP"
     listeningPort: "443"
     targetPort: "8083"
-    targetService: "api"
+    targetIP: "172.17.0.1"
     public: true
+    path: "/"
+    isAuth: false
+    login: ""
+    password: ""
 
   # Dashboard - Team statistics UI
   - protocol: "HTTPS"
     targetProtocol: "HTTP"
     listeningPort: "8443"
     targetPort: "8081"
-    targetService: "dashboard"
+    targetIP: "172.17.0.1"
     public: true
+    path: "/"
+    isAuth: false
+    login: ""
+    password: ""
 
 # PostgreSQL is NOT exposed - internal only
 # Exporter runs as background service - no port needed
