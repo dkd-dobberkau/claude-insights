@@ -16,7 +16,7 @@ ports:
   - protocol: "HTTPS"
     targetProtocol: "HTTP"
     listeningPort: "443"
-    targetPort: "8080"
+    targetPort: "8083"
     targetService: "api"
     public: true
 
