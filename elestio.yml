@@ -13,10 +13,11 @@ config:
 
 ports:
   # API (FastAPI) - Main endpoint for session uploads
+  # Elestio routes 443 → 3000 by default
   - protocol: "HTTPS"
     targetProtocol: "HTTP"
     listeningPort: "443"
-    targetPort: "8083"
+    targetPort: "3000"
     targetIP: "172.17.0.1"
     public: true
     path: "/"
@@ -25,10 +26,11 @@ ports:
     password: ""
 
   # Dashboard - Team statistics UI
+  # Exposed directly on port 8443
   - protocol: "HTTPS"
     targetProtocol: "HTTP"
     listeningPort: "8443"
-    targetPort: "8081"
+    targetPort: "8443"
     targetIP: "172.17.0.1"
     public: true
     path: "/"

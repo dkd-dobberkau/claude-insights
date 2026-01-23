@@ -42,7 +42,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://insights:${DB_PASSWORD}@postgres/claude_insights
       API_SECRET_KEY: ${API_SECRET_KEY}
     ports:
-      - "${API_PORT:-8083}:8080"
+      - "3000:8080"  # Elestio routes 443 → 3000 by default
     depends_on:
       postgres:
         condition: service_healthy
@@ -69,7 +69,7 @@ services:
       DATABASE_URL: postgresql://insights:${DB_PASSWORD}@postgres/claude_insights
       SECRET_KEY: ${FLASK_SECRET_KEY}
     ports:
-      - "${DASHBOARD_PORT:-8081}:8081"
+      - "8443:8081"  # Dashboard accessible on port 8443
     depends_on:
       postgres:
         condition: service_healthy
