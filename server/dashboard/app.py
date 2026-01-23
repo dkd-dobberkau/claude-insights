@@ -44,12 +44,25 @@ def generate_api_key() -> str:
     return f"dkd_sk_{secrets.token_urlsafe(32)}"
 
 
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("user_id"):
+            flash("Login erforderlich", "error")
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated
+
+
 def admin_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
+        if not session.get("user_id"):
+            flash("Login erforderlich", "error")
+            return redirect(url_for("login"))
         if not session.get("is_admin"):
             flash("Admin-Zugang erforderlich", "error")
-            return redirect(url_for("login"))
+            return redirect(url_for("home"))
         return f(*args, **kwargs)
     return decorated
 
@@ -188,10 +201,12 @@ BASE_TEMPLATE = """
         <header>
             <h1>dkd Claude Insights</h1>
             <nav>
+                {% if session.get('user_id') %}
                 <a href="{{ url_for('home') }}" class="{{ 'active' if active == 'team' else '' }}">Team</a>
                 <a href="{{ url_for('tools') }}" class="{{ 'active' if active == 'tools' else '' }}">Tools</a>
                 {% if session.get('is_admin') %}
                 <a href="{{ url_for('admin_users') }}" class="{{ 'active' if active == 'admin' else '' }}">Admin</a>
+                {% endif %}
                 <a href="{{ url_for('logout') }}">Logout ({{ session.get('username') }})</a>
                 {% else %}
                 <a href="{{ url_for('login') }}">Login</a>
@@ -408,14 +423,12 @@ def login():
                 """, (key_hash,))
                 user = cur.fetchone()
 
-        if user and user["is_admin"]:
+        if user:
             session["user_id"] = user["id"]
             session["username"] = user["username"]
-            session["is_admin"] = True
+            session["is_admin"] = user["is_admin"]
             flash("Login erfolgreich", "success")
-            return redirect(url_for("admin_users"))
-        elif user:
-            flash("Kein Admin-Zugang", "error")
+            return redirect(url_for("home"))
         else:
             flash("Ungueltiger API Key", "error")
 
@@ -536,6 +549,7 @@ def admin_delete_user(user_id):
 
 
 @app.route("/")
+@login_required
 def home():
     with get_db() as conn:
         with conn.cursor() as cur:
@@ -577,6 +591,7 @@ def home():
 
 
 @app.route("/tools")
+@login_required
 def tools():
     with get_db() as conn:
         with conn.cursor() as cur:
