@@ -26,14 +26,14 @@ ports:
     password: ""
 
   # Dashboard - Team statistics UI
-  # Exposed directly on port 8443
+  # Accessible at /dashboard/ on same port
   - protocol: "HTTPS"
     targetProtocol: "HTTP"
-    listeningPort: "8443"
-    targetPort: "8443"
+    listeningPort: "443"
+    targetPort: "8081"
     targetIP: "172.17.0.1"
     public: true
-    path: "/"
+    path: "/dashboard/"
     isAuth: false
     login: ""
     password: ""
@@ -66,4 +66,4 @@ lifeCycle:
     echo ""
     echo "Access:"
     echo "  API: https://[CI_CD_DOMAIN]"
-    echo "  Dashboard: https://[CI_CD_DOMAIN]:8443"
+    echo "  Dashboard: https://[CI_CD_DOMAIN]/dashboard/"

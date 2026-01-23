@@ -69,7 +69,7 @@ services:
       DATABASE_URL: postgresql://insights:${DB_PASSWORD}@postgres/claude_insights
       SECRET_KEY: ${FLASK_SECRET_KEY}
     ports:
-      - "8443:8081"  # Dashboard accessible on port 8443
+      - "8081:8081"  # Dashboard routed via /dashboard/ path
     depends_on:
       postgres:
         condition: service_healthy
