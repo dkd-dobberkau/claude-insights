@@ -188,13 +188,13 @@ BASE_TEMPLATE = """
         <header>
             <h1>dkd Claude Insights</h1>
             <nav>
-                <a href="/" class="{{ 'active' if active == 'team' else '' }}">Team</a>
-                <a href="/tools" class="{{ 'active' if active == 'tools' else '' }}">Tools</a>
+                <a href="{{ url_for('home') }}" class="{{ 'active' if active == 'team' else '' }}">Team</a>
+                <a href="{{ url_for('tools') }}" class="{{ 'active' if active == 'tools' else '' }}">Tools</a>
                 {% if session.get('is_admin') %}
-                <a href="/admin/users" class="{{ 'active' if active == 'admin' else '' }}">Admin</a>
-                <a href="/logout">Logout ({{ session.get('username') }})</a>
+                <a href="{{ url_for('admin_users') }}" class="{{ 'active' if active == 'admin' else '' }}">Admin</a>
+                <a href="{{ url_for('logout') }}">Logout ({{ session.get('username') }})</a>
                 {% else %}
-                <a href="/login">Login</a>
+                <a href="{{ url_for('login') }}">Login</a>
                 {% endif %}
             </nav>
         </header>
@@ -293,7 +293,7 @@ ADMIN_USERS_CONTENT = """
 <div class="card">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
         <h2>User-Verwaltung</h2>
-        <a href="/admin/users/new" class="btn btn-primary">+ Neuer User</a>
+        <a href="{{ url_for('admin_new_user') }}" class="btn btn-primary">+ Neuer User</a>
     </div>
     <table>
         <thead>
@@ -378,7 +378,7 @@ NEW_USER_CONTENT = """
             </label>
         </div>
         <button type="submit" class="btn btn-primary">User anlegen</button>
-        <a href="/admin/users" class="btn btn-secondary">Abbrechen</a>
+        <a href="{{ url_for('admin_users') }}" class="btn btn-secondary">Abbrechen</a>
     </form>
 </div>
 """
