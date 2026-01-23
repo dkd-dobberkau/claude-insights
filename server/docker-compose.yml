@@ -1,3 +1,9 @@
+# Claude Insights Server
+# Works locally and on Elestio (see elestio.yml for cloud routing)
+#
+# Local:   docker compose up -d
+# Elestio: Deploy via CI/CD with this directory as root
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -34,10 +40,15 @@ services:
       DATABASE_URL: postgresql+asyncpg://insights:${DB_PASSWORD}@postgres/claude_insights
       API_SECRET_KEY: ${API_SECRET_KEY}
     ports:
-      - "8083:8080"
+      - "${API_PORT:-8083}:8080"  # Local: 8083, Elestio: routed via elestio.yml
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     restart: unless-stopped
     networks:
       - insights-network
@@ -56,10 +67,15 @@ services:
       DATABASE_URL: postgresql://insights:${DB_PASSWORD}@postgres/claude_insights
       SECRET_KEY: ${FLASK_SECRET_KEY}
     ports:
-      - "8081:8081"
+      - "${DASHBOARD_PORT:-8081}:8081"  # Local: 8081, Elestio: routed via elestio.yml
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     restart: unless-stopped
     networks:
       - insights-network

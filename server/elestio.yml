@@ -1,0 +1,43 @@
+# Elestio Configuration for Claude Insights Server
+# This file configures routing for Elestio deployment
+# Local development uses docker-compose.yml ports directly
+
+config:
+  runTime: "docker-compose"
+  version: ""
+
+# Environment variables - set these in Elestio dashboard
+# DB_PASSWORD: Strong database password
+# API_SECRET_KEY: Random 32+ character string
+# FLASK_SECRET_KEY: Random 32+ character string
+
+ports:
+  # API (FastAPI) - Main endpoint for session uploads
+  - protocol: "HTTPS"
+    targetProtocol: "HTTP"
+    listeningPort: "443"
+    targetPort: "8080"
+    targetService: "api"
+    public: true
+
+  # Dashboard - Team statistics UI
+  - protocol: "HTTPS"
+    targetProtocol: "HTTP"
+    listeningPort: "8443"
+    targetPort: "8081"
+    targetService: "dashboard"
+    public: true
+
+# PostgreSQL is NOT exposed - internal only
+# Exporter runs as background service - no port needed
+
+lifeCycle:
+  postInstallCommand: |
+    echo "Claude Insights Server deployed successfully!"
+    echo ""
+    echo "Create your first user:"
+    echo "  docker compose exec api python -m app.cli create-user <username> --email <email>"
+    echo ""
+    echo "Access:"
+    echo "  API: https://[CI_CD_DOMAIN]"
+    echo "  Dashboard: https://[CI_CD_DOMAIN]:8443"

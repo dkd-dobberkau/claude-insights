@@ -114,7 +114,34 @@ Environment variables in `server/.env`:
 
 ## Production Deployment
 
-For production, consider:
+### Elestio (Recommended)
+
+Deploy to [Elestio](https://elestio.com) with automatic HTTPS and managed infrastructure:
+
+1. **Create Service**
+   - Elestio Dashboard → "Deploy my source code"
+   - Connect your GitHub/GitLab repository
+   - Set root directory to `server/`
+
+2. **Configure Environment Variables**
+   ```
+   DB_PASSWORD=<generate-secure-password>
+   API_SECRET_KEY=<openssl rand -hex 32>
+   FLASK_SECRET_KEY=<openssl rand -hex 32>
+   ```
+
+3. **Access URLs** (after deployment)
+   - API: `https://[your-app].elestio.app`
+   - Dashboard: `https://[your-app].elestio.app:8443`
+
+4. **Create Users** via Elestio Terminal:
+   ```bash
+   docker compose exec api python -m app.cli create-user max --email max@example.com
+   ```
+
+### Self-Hosted Production
+
+For self-hosted production, consider:
 
 1. **Reverse Proxy**: Put nginx/traefik in front for HTTPS
 2. **Authentication**: Integrate with your SSO provider
