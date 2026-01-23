@@ -46,16 +46,14 @@ lifeCycle:
     # Generate .env if it doesn't exist
     if [ ! -f .env ]; then
       echo "Generating secure environment variables..."
-      cat > .env << ENVEOF
-    DB_PASSWORD=$(openssl rand -hex 16)
-    API_SECRET_KEY=$(openssl rand -hex 32)
-    FLASK_SECRET_KEY=$(openssl rand -hex 32)
-    ENVEOF
+      echo "DB_PASSWORD=$(openssl rand -hex 16)" > .env
+      echo "API_SECRET_KEY=$(openssl rand -hex 32)" >> .env
+      echo "FLASK_SECRET_KEY=$(openssl rand -hex 32)" >> .env
       echo "Created .env with secure credentials."
     fi
 
-    # Restart containers to pick up env vars
-    docker compose down 2>/dev/null || true
+    # Reset database volume and restart with credentials
+    docker compose down -v 2>/dev/null || true
     docker compose up -d
 
     echo ""
