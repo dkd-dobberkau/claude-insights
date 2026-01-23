@@ -13,8 +13,8 @@ cd claude-insights
 cp .env.example .env
 # Edit .env to set CLAUDE_LOGS_PATH if different from ~/.claude
 
-# Start services
-docker compose up -d
+# Start services (local SQLite stack)
+docker compose -f docker-compose.local.yml up -d
 
 # Access the UIs
 # Replay UI: http://localhost:8002
@@ -77,31 +77,31 @@ Pre-defined queries at http://localhost:8001:
 
 ```bash
 # View logs
-docker compose logs -f processor    # Log processor output
-docker compose logs -f replay-ui    # Flask UI logs
-docker compose logs -f datasette    # Datasette logs
+docker compose -f docker-compose.local.yml logs -f processor
+docker compose -f docker-compose.local.yml logs -f replay-ui
+docker compose -f docker-compose.local.yml logs -f datasette
 
 # Rebuild after code changes
-docker compose build --no-cache
+docker compose -f docker-compose.local.yml build --no-cache
 
 # Stop services
-docker compose down
+docker compose -f docker-compose.local.yml down
 
 # Reset database
-rm data/sessions.db && docker compose restart processor
+rm data/sessions.db && docker compose -f docker-compose.local.yml restart processor
 ```
 
 ## Troubleshooting
 
 **No sessions appearing?**
 - Check that `CLAUDE_LOGS_PATH` points to your Claude Code logs directory
-- View processor logs: `docker compose logs processor`
-- Ensure the logs directory is mounted correctly in docker-compose.yml
+- View processor logs: `docker compose -f docker-compose.local.yml logs processor`
+- Ensure the logs directory is mounted correctly in docker-compose.local.yml
 
 **Database locked errors?**
-- Stop all services: `docker compose down`
-- Restart: `docker compose up -d`
+- Stop all services: `docker compose -f docker-compose.local.yml down`
+- Restart: `docker compose -f docker-compose.local.yml up -d`
 
 **Port conflicts?**
 - Change ports in `.env` file
-- Rebuild: `docker compose up -d`
+- Rebuild: `docker compose -f docker-compose.local.yml up -d`

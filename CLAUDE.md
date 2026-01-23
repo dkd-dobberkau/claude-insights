@@ -10,26 +10,30 @@ Claude Insights is a self-hosted analytics and replay system for Claude Code ses
 
 ## Commands
 
+### Team/Elestio Deployment (PostgreSQL)
 ```bash
-# Start all services
+# Start server stack
 docker compose up -d
 
-# Stop services
-docker compose down
+# View logs
+docker compose logs api          # API logs
+docker compose logs dashboard    # Dashboard logs
+
+# User management
+docker compose exec api python -m app.cli create-user <name> --email <email>
+```
+
+### Local Development (SQLite)
+```bash
+# Start local stack
+docker compose -f docker-compose.local.yml up -d
 
 # View logs
-docker compose logs processor    # Log processor output
-docker compose logs replay-ui    # Flask UI logs
-docker compose logs datasette    # Datasette logs
-
-# Rebuild after code changes
-docker compose build processor   # Rebuild processor
-docker compose build replay-ui   # Rebuild UI
-docker compose up -d             # Restart with new builds
+docker compose -f docker-compose.local.yml logs processor
+docker compose -f docker-compose.local.yml logs replay-ui
 
 # Check database
 sqlite3 data/sessions.db ".tables"
-sqlite3 data/sessions.db "SELECT COUNT(*) FROM sessions"
 ```
 
 ## Architecture

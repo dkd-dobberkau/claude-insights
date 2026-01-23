@@ -5,11 +5,9 @@ Central server for collecting Claude Code session insights from team members. Pr
 ## Quick Start
 
 ```bash
-cd server
-
 # Copy environment file
 cp .env.example .env
-# Edit .env with secure passwords
+# Edit .env with secure passwords (DB_PASSWORD, API_SECRET_KEY, FLASK_SECRET_KEY)
 
 # Start services
 docker compose up -d
@@ -104,13 +102,13 @@ duckdb -c "SELECT * FROM read_parquet('/path/to/backup/**/*.parquet');"
 
 ## Configuration
 
-Environment variables in `server/.env`:
+Environment variables in `.env`:
 
 | Variable | Description |
 |----------|-------------|
-| `POSTGRES_PASSWORD` | PostgreSQL password |
-| `SECRET_KEY` | API secret key |
-| `DATABASE_URL` | PostgreSQL connection string |
+| `DB_PASSWORD` | PostgreSQL password |
+| `API_SECRET_KEY` | API JWT secret key |
+| `FLASK_SECRET_KEY` | Dashboard session secret |
 
 ## Production Deployment
 
@@ -121,7 +119,7 @@ Deploy to [Elestio](https://elestio.com) with automatic HTTPS and managed infras
 1. **Create Service**
    - Elestio Dashboard → "Deploy my source code"
    - Connect your GitHub/GitLab repository
-   - Set root directory to `server/`
+   - Use repository root (no subdirectory needed)
 
 2. **Configure Environment Variables**
    ```

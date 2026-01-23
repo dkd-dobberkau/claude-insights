@@ -1,50 +1,117 @@
+# Claude Insights Server
+# Production/Elestio deployment with PostgreSQL
+#
+# Deploy:   docker compose up -d
+# Elestio:  CI/CD auto-deploys from this file
+#
+# For local development with SQLite, use: docker compose -f docker-compose.local.yml up -d
+
 services:
-  # Log processor that watches Claude Code logs and imports to SQLite
-  processor:
-    build:
-      context: .
-      dockerfile: Dockerfile.processor
-    volumes:
-      - ${CLAUDE_LOGS_PATH:-~/.claude}:/claude-logs:ro
-      - ./data:/data
+  postgres:
+    image: postgres:16-alpine
+    container_name: insights-db
     environment:
-      - WATCH_INTERVAL=${WATCH_INTERVAL:-30}
-      - DB_PATH=/data/sessions.db
-      - LOG_PATH=/claude-logs
-    restart: unless-stopped
-
-  # Datasette for exploring and querying the data
-  datasette:
-    build:
-      context: .
-      dockerfile: Dockerfile.datasette
+      POSTGRES_DB: claude_insights
+      POSTGRES_USER: insights
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
-      - ./data:/data:ro
-      - ./datasette:/datasette
+      - postgres_data:/var/lib/postgresql/data
+      - ./server/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     ports:
-      - "${DATASETTE_PORT:-8001}:8001"
-    command: >
-      datasette /data/sessions.db
-      -p 8001
-      -h 0.0.0.0
-      --metadata /datasette/metadata.yml
-      --static static:/datasette/static
-      --template-dir /datasette/templates
-    depends_on:
-      - processor
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "insights"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
+    networks:
+      - insights-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-  # Replay UI for stepping through sessions
-  replay-ui:
+  api:
     build:
-      context: .
-      dockerfile: Dockerfile.ui
-    volumes:
-      - ./data:/data:ro
-    ports:
-      - "${UI_PORT:-8002}:8002"
+      context: ./server/api
+      dockerfile: Dockerfile
+    container_name: insights-api
     environment:
-      - DB_PATH=/data/sessions.db
+      DATABASE_URL: postgresql+asyncpg://insights:${DB_PASSWORD}@postgres/claude_insights
+      API_SECRET_KEY: ${API_SECRET_KEY}
+    ports:
+      - "${API_PORT:-8083}:8080"
     depends_on:
-      - processor
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     restart: unless-stopped
+    networks:
+      - insights-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  dashboard:
+    build:
+      context: ./server/dashboard
+      dockerfile: Dockerfile
+    container_name: insights-dashboard
+    environment:
+      DATABASE_URL: postgresql://insights:${DB_PASSWORD}@postgres/claude_insights
+      SECRET_KEY: ${FLASK_SECRET_KEY}
+    ports:
+      - "${DASHBOARD_PORT:-8081}:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - insights-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  exporter:
+    build:
+      context: ./server/exporter
+      dockerfile: Dockerfile
+    container_name: insights-exporter
+    environment:
+      DATABASE_URL: postgresql://insights:${DB_PASSWORD}@postgres/claude_insights
+    volumes:
+      - parquet_backup:/backup/parquet
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - insights-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  postgres_data:
+  parquet_backup:
+
+networks:
+  insights-network:
+    driver: bridge

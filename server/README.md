@@ -2,12 +2,12 @@
 
 Central server for team-wide Claude Code session analytics.
 
-→ **Full documentation**: [Team Setup Guide](../docs/team-setup.md)
+> **Full documentation**: [Team Setup Guide](../docs/team-setup.md)
 
 ## Quick Reference
 
 ```bash
-# Start
+# Start (from repo root)
 docker compose up -d
 
 # Create user
@@ -33,3 +33,13 @@ docker compose exec api python -m app.cli create-user <name> --email <email>
 docker compose exec api python -m app.cli rotate-key <name>
 docker compose exec api python -m app.cli delete-user <name>
 ```
+
+## Directory Structure
+
+This directory contains the server components:
+- `api/` - FastAPI REST endpoint
+- `dashboard/` - Flask team statistics UI
+- `exporter/` - Parquet backup service
+- `init.sql` - PostgreSQL schema
+
+The `docker-compose.yml` and `elestio.yml` are in the **repo root** for Elestio deployment.
