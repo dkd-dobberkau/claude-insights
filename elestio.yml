@@ -58,14 +58,6 @@ lifeCycle:
     docker compose down 2>/dev/null || true
     docker compose up -d
 
-    # Install custom nginx config with dashboard routing
-    if [ -f server/nginx/elestio-nginx.conf ]; then
-      echo "Installing custom nginx config..."
-      docker cp server/nginx/elestio-nginx.conf elestio-nginx:/etc/nginx/conf.d/claude-insights-u1128.vm.elestio.app.conf
-      docker exec elestio-nginx nginx -s reload
-      echo "Nginx config updated with dashboard routing."
-    fi
-
     echo ""
     echo "Claude Insights Server deployed successfully!"
     echo ""
@@ -75,3 +67,12 @@ lifeCycle:
     echo "Access:"
     echo "  API: https://[CI_CD_DOMAIN]"
     echo "  Dashboard: https://[CI_CD_DOMAIN]/dashboard/"
+
+  postDeployCommand: |
+    # Install custom nginx config with dashboard routing (runs on every deploy)
+    if [ -f server/nginx/elestio-nginx.conf ]; then
+      echo "Installing custom nginx config..."
+      docker cp server/nginx/elestio-nginx.conf elestio-nginx:/etc/nginx/conf.d/claude-insights-u1128.vm.elestio.app.conf
+      docker exec elestio-nginx nginx -s reload
+      echo "Nginx config updated with dashboard routing."
+    fi
