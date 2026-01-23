@@ -43,6 +43,22 @@ ports:
 
 lifeCycle:
   postInstallCommand: |
+    # Generate .env if it doesn't exist
+    if [ ! -f .env ]; then
+      echo "Generating secure environment variables..."
+      cat > .env << ENVEOF
+    DB_PASSWORD=$(openssl rand -hex 16)
+    API_SECRET_KEY=$(openssl rand -hex 32)
+    FLASK_SECRET_KEY=$(openssl rand -hex 32)
+    ENVEOF
+      echo "Created .env with secure credentials."
+    fi
+
+    # Restart containers to pick up env vars
+    docker compose down 2>/dev/null || true
+    docker compose up -d
+
+    echo ""
     echo "Claude Insights Server deployed successfully!"
     echo ""
     echo "Create your first user:"
