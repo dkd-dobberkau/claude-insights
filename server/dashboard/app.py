@@ -9,6 +9,26 @@ from functools import wraps
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
 
+# Support running under /dashboard/ subpath (Elestio deployment)
+APPLICATION_ROOT = os.environ.get("APPLICATION_ROOT", "/dashboard/")
+app.config["APPLICATION_ROOT"] = APPLICATION_ROOT
+
+# Middleware to handle reverse proxy with subpath
+class PrefixMiddleware:
+    def __init__(self, app, prefix=''):
+        self.app = app
+        self.prefix = prefix.rstrip('/')
+
+    def __call__(self, environ, start_response):
+        if self.prefix:
+            environ['SCRIPT_NAME'] = self.prefix
+            path_info = environ.get('PATH_INFO', '')
+            if path_info.startswith(self.prefix):
+                environ['PATH_INFO'] = path_info[len(self.prefix):] or '/'
+        return self.app(environ, start_response)
+
+app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=APPLICATION_ROOT)
+
 DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://insights:password@localhost/claude_insights")
 
 
