@@ -18,21 +18,21 @@ def hash_api_key(api_key: str) -> str:
     return hashlib.sha256(api_key.encode()).hexdigest()
 
 
-def create_user(conn, username: str, email: str = None, share_level: str = "metadata"):
+def create_user(conn, username: str, email: str = None, share_level: str = "metadata", is_admin: bool = False):
     """Create a new user and return their API key."""
     api_key = generate_api_key()
     key_hash = hash_api_key(api_key)
 
     with conn.cursor() as cur:
         cur.execute("""
-            INSERT INTO users (username, api_key_hash, email, share_level)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO users (username, api_key_hash, email, share_level, is_admin)
+            VALUES (%s, %s, %s, %s, %s)
             RETURNING id
-        """, (username, key_hash, email, share_level))
+        """, (username, key_hash, email, share_level, is_admin))
         user_id = cur.fetchone()["id"]
         conn.commit()
 
-    print(f"Created user: {username} (ID: {user_id})")
+    print(f"Created user: {username} (ID: {user_id}){' [ADMIN]' if is_admin else ''}")
     print(f"API Key: {api_key}")
     print("\nSave this API key - it cannot be retrieved later!")
     return api_key
@@ -112,6 +112,7 @@ def main():
     create_parser.add_argument("username")
     create_parser.add_argument("--email", "-e")
     create_parser.add_argument("--share-level", "-s", default="metadata", choices=["none", "metadata", "full"])
+    create_parser.add_argument("--admin", "-a", action="store_true", help="Grant admin privileges")
 
     # list-users
     subparsers.add_parser("list-users", help="List all users")
@@ -130,7 +131,7 @@ def main():
 
     try:
         if args.command == "create-user":
-            create_user(conn, args.username, args.email, args.share_level)
+            create_user(conn, args.username, args.email, args.share_level, args.admin)
         elif args.command == "list-users":
             list_users(conn)
         elif args.command == "rotate-key":
