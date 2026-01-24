@@ -1073,11 +1073,14 @@ def replay(session_id):
 @login_required
 def tokens():
     user_id = session.get("user_id")
+    is_admin = session.get("is_admin", False)
+    user_filter = "" if is_admin else "WHERE s.user_id = %s"
+    user_params = () if is_admin else (user_id,)
 
     with get_db() as conn:
         with conn.cursor() as cur:
             # Totals from token_usage table
-            cur.execute("""
+            cur.execute(f"""
                 SELECT
                     COALESCE(SUM(tu.input_tokens), 0) as input_tokens,
                     COALESCE(SUM(tu.output_tokens), 0) as output_tokens,
@@ -1085,27 +1088,28 @@ def tokens():
                     COALESCE(SUM(tu.cache_creation_tokens), 0) as cache_creation
                 FROM token_usage tu
                 JOIN sessions s ON tu.session_id = s.id
-                WHERE s.user_id = %s
-            """, (user_id,))
+                {user_filter}
+            """, user_params)
             totals_row = cur.fetchone()
 
             # Fallback to sessions table if no token_usage data
             if totals_row["input_tokens"] == 0:
-                cur.execute("""
+                cur.execute(f"""
                     SELECT
                         COALESCE(SUM(total_tokens_in), 0) as input_tokens,
                         COALESCE(SUM(total_tokens_out), 0) as output_tokens,
                         0 as cache_read,
                         0 as cache_creation
-                    FROM sessions
-                    WHERE user_id = %s
-                """, (user_id,))
+                    FROM sessions s
+                    {user_filter}
+                """, user_params)
                 totals_row = cur.fetchone()
 
             totals = dict(totals_row)
 
             # By model
-            cur.execute("""
+            model_filter = "" if is_admin else "AND s.user_id = %s"
+            cur.execute(f"""
                 SELECT
                     tu.model,
                     COALESCE(SUM(tu.input_tokens), 0) as input_tokens,
@@ -1115,14 +1119,14 @@ def tokens():
                     COUNT(*) as message_count
                 FROM token_usage tu
                 JOIN sessions s ON tu.session_id = s.id
-                WHERE s.user_id = %s AND tu.model IS NOT NULL
+                WHERE tu.model IS NOT NULL {model_filter}
                 GROUP BY tu.model
                 ORDER BY SUM(tu.input_tokens + tu.output_tokens) DESC
-            """, (user_id,))
+            """, user_params)
             by_model = [dict(r) for r in cur.fetchall()]
 
             # By session
-            cur.execute("""
+            cur.execute(f"""
                 SELECT
                     s.id as session_id,
                     s.project_name,
@@ -1130,11 +1134,11 @@ def tokens():
                     COALESCE(SUM(tu.output_tokens), s.total_tokens_out) as output_tokens
                 FROM sessions s
                 LEFT JOIN token_usage tu ON tu.session_id = s.id
-                WHERE s.user_id = %s
+                {user_filter}
                 GROUP BY s.id
                 ORDER BY COALESCE(SUM(tu.input_tokens + tu.output_tokens), s.total_tokens_in + s.total_tokens_out) DESC
                 LIMIT 20
-            """, (user_id,))
+            """, user_params)
             by_session = [dict(r) for r in cur.fetchall()]
 
     return render_page(
@@ -1150,6 +1154,7 @@ def tokens():
 @login_required
 def search():
     user_id = session.get("user_id")
+    is_admin = session.get("is_admin", False)
     query = request.args.get("q", "").strip()
     results = []
 
@@ -1157,21 +1162,40 @@ def search():
         with get_db() as conn:
             with conn.cursor() as cur:
                 # Use PostgreSQL FTS with ts_headline for snippets
-                cur.execute("""
-                    SELECT
-                        m.content,
-                        m.timestamp,
-                        s.project_name,
-                        s.id as session_id,
-                        ts_headline('german', m.content, plainto_tsquery('german', %s),
-                                   'MaxWords=50, MinWords=25, StartSel=<mark style="background:#e94560;color:#fff">, StopSel=</mark>') as snippet
-                    FROM messages m
-                    JOIN sessions s ON m.session_id = s.id
-                    WHERE s.user_id = %s
-                      AND m.search_vector @@ plainto_tsquery('german', %s)
-                    ORDER BY ts_rank(m.search_vector, plainto_tsquery('german', %s)) DESC
-                    LIMIT 100
-                """, (query, user_id, query, query))
+                if is_admin:
+                    cur.execute("""
+                        SELECT
+                            m.content,
+                            m.timestamp,
+                            s.project_name,
+                            s.id as session_id,
+                            u.username,
+                            ts_headline('german', m.content, plainto_tsquery('german', %s),
+                                       'MaxWords=50, MinWords=25, StartSel=<mark style="background:#e94560;color:#fff">, StopSel=</mark>') as snippet
+                        FROM messages m
+                        JOIN sessions s ON m.session_id = s.id
+                        JOIN users u ON s.user_id = u.id
+                        WHERE m.search_vector @@ plainto_tsquery('german', %s)
+                        ORDER BY ts_rank(m.search_vector, plainto_tsquery('german', %s)) DESC
+                        LIMIT 100
+                    """, (query, query, query))
+                else:
+                    cur.execute("""
+                        SELECT
+                            m.content,
+                            m.timestamp,
+                            s.project_name,
+                            s.id as session_id,
+                            NULL as username,
+                            ts_headline('german', m.content, plainto_tsquery('german', %s),
+                                       'MaxWords=50, MinWords=25, StartSel=<mark style="background:#e94560;color:#fff">, StopSel=</mark>') as snippet
+                        FROM messages m
+                        JOIN sessions s ON m.session_id = s.id
+                        WHERE s.user_id = %s
+                          AND m.search_vector @@ plainto_tsquery('german', %s)
+                        ORDER BY ts_rank(m.search_vector, plainto_tsquery('german', %s)) DESC
+                        LIMIT 100
+                    """, (query, user_id, query, query))
                 results = cur.fetchall()
 
     return render_page(SEARCH_CONTENT, active="search", query=query, results=results)
@@ -1181,15 +1205,24 @@ def search():
 @login_required
 def plans_list():
     user_id = session.get("user_id")
+    is_admin = session.get("is_admin", False)
 
     with get_db() as conn:
         with conn.cursor() as cur:
-            cur.execute("""
-                SELECT name, title, created_at
-                FROM plans
-                WHERE user_id = %s
-                ORDER BY created_at DESC
-            """, (user_id,))
+            if is_admin:
+                cur.execute("""
+                    SELECT p.name, p.title, p.created_at, u.username
+                    FROM plans p
+                    JOIN users u ON p.user_id = u.id
+                    ORDER BY p.created_at DESC
+                """)
+            else:
+                cur.execute("""
+                    SELECT name, title, created_at, NULL as username
+                    FROM plans
+                    WHERE user_id = %s
+                    ORDER BY created_at DESC
+                """, (user_id,))
             plans = cur.fetchall()
 
     return render_page(PLANS_CONTENT, active="plans", plans=plans)
@@ -1199,14 +1232,22 @@ def plans_list():
 @login_required
 def plan_detail(name):
     user_id = session.get("user_id")
+    is_admin = session.get("is_admin", False)
 
     with get_db() as conn:
         with conn.cursor() as cur:
-            cur.execute("""
-                SELECT name, title, content
-                FROM plans
-                WHERE user_id = %s AND name = %s
-            """, (user_id, name))
+            if is_admin:
+                cur.execute("""
+                    SELECT name, title, content
+                    FROM plans
+                    WHERE name = %s
+                """, (name,))
+            else:
+                cur.execute("""
+                    SELECT name, title, content
+                    FROM plans
+                    WHERE user_id = %s AND name = %s
+                """, (user_id, name))
             plan = cur.fetchone()
 
     if not plan:
