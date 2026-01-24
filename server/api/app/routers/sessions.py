@@ -109,6 +109,47 @@ async def create_session(
                     }
                 )
 
+        # Insert token usage (per-message/per-model tracking)
+        for tu in session.token_usage:
+            await db.execute(
+                text("""
+                    INSERT INTO token_usage
+                    (session_id, message_sequence, timestamp, model,
+                     input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens)
+                    VALUES (:session_id, :seq, :ts, :model, :input, :output, :cache_read, :cache_creation)
+                """),
+                {
+                    "session_id": session.session_id,
+                    "seq": tu.message_sequence,
+                    "ts": tu.timestamp,
+                    "model": tu.model,
+                    "input": tu.input_tokens,
+                    "output": tu.output_tokens,
+                    "cache_read": tu.cache_read_tokens,
+                    "cache_creation": tu.cache_creation_tokens
+                }
+            )
+
+        # Insert detailed tool calls (if full sharing)
+        if store_messages:
+            for tc in session.tool_calls:
+                await db.execute(
+                    text("""
+                        INSERT INTO tool_calls
+                        (session_id, sequence, tool_name, tool_input, tool_output, duration_ms, success)
+                        VALUES (:session_id, :seq, :name, :input, :output, :duration, :success)
+                    """),
+                    {
+                        "session_id": session.session_id,
+                        "seq": tc.message_sequence,
+                        "name": tc.tool_name,
+                        "input": tc.tool_input,
+                        "output": tc.tool_output,
+                        "duration": tc.duration_ms,
+                        "success": tc.success
+                    }
+                )
+
         await db.commit()
 
         return SessionResponse(

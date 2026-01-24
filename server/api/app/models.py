@@ -9,6 +9,25 @@ class ToolStats(BaseModel):
     errors: int = 0
 
 
+class TokenUsageItem(BaseModel):
+    message_sequence: Optional[int] = None
+    timestamp: Optional[datetime] = None
+    model: Optional[str] = None
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cache_read_tokens: int = 0
+    cache_creation_tokens: int = 0
+
+
+class ToolCallItem(BaseModel):
+    message_sequence: Optional[int] = None
+    tool_name: str
+    tool_input: Optional[str] = None
+    tool_output: Optional[str] = None
+    duration_ms: Optional[int] = None
+    success: bool = True
+
+
 class SessionCreate(BaseModel):
     session_id: str
     project_name: Optional[str] = None
@@ -21,6 +40,8 @@ class SessionCreate(BaseModel):
     tools: dict[str, ToolStats] = Field(default_factory=dict)
     tags: list[str] = Field(default_factory=list)
     messages: Optional[list[dict]] = None
+    token_usage: list[TokenUsageItem] = Field(default_factory=list)
+    tool_calls: list[ToolCallItem] = Field(default_factory=list)
 
 
 class SessionResponse(BaseModel):
