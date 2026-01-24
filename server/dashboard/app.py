@@ -404,10 +404,11 @@ NEW_USER_CONTENT = """
 
 SESSIONS_CONTENT = """
 <div class="card">
-    <h2>Meine Sessions</h2>
+    <h2>{% if session.get('is_admin') %}Alle Sessions{% else %}Meine Sessions{% endif %}</h2>
     <table>
         <thead>
             <tr>
+                {% if session.get('is_admin') %}<th>User</th>{% endif %}
                 <th>Session-ID</th>
                 <th>Projekt</th>
                 <th>Datum</th>
@@ -419,6 +420,7 @@ SESSIONS_CONTENT = """
         <tbody>
             {% for s in sessions %}
             <tr>
+                {% if session.get('is_admin') %}<td>{{ s.username or '-' }}</td>{% endif %}
                 <td style="font-family: monospace; font-size: 0.85rem;">{{ s.id[:20] }}...</td>
                 <td>{{ s.project_name or '-' }}</td>
                 <td>{{ s.started_at.strftime('%d.%m.%Y %H:%M') if s.started_at else '-' }}</td>
@@ -427,7 +429,7 @@ SESSIONS_CONTENT = """
                 <td><a href="{{ url_for('replay', session_id=s.id) }}" class="btn btn-sm btn-primary">Replay</a></td>
             </tr>
             {% else %}
-            <tr><td colspan="6" style="text-align: center; color: var(--text-dim);">Keine Sessions vorhanden</td></tr>
+            <tr><td colspan="{% if session.get('is_admin') %}7{% else %}6{% endif %}" style="text-align: center; color: var(--text-dim);">Keine Sessions vorhanden</td></tr>
             {% endfor %}
         </tbody>
     </table>
@@ -981,15 +983,28 @@ def tools():
 @login_required
 def sessions_list():
     user_id = session.get("user_id")
+    is_admin = session.get("is_admin", False)
     with get_db() as conn:
         with conn.cursor() as cur:
-            cur.execute("""
-                SELECT id, project_name, started_at, total_messages, total_tokens_in, total_tokens_out
-                FROM sessions
-                WHERE user_id = %s
-                ORDER BY started_at DESC
-                LIMIT 100
-            """, (user_id,))
+            if is_admin:
+                # Admins see all sessions with username
+                cur.execute("""
+                    SELECT s.id, s.project_name, s.started_at, s.total_messages,
+                           s.total_tokens_in, s.total_tokens_out, u.username
+                    FROM sessions s
+                    JOIN users u ON s.user_id = u.id
+                    ORDER BY s.started_at DESC
+                    LIMIT 100
+                """)
+            else:
+                cur.execute("""
+                    SELECT id, project_name, started_at, total_messages,
+                           total_tokens_in, total_tokens_out, NULL as username
+                    FROM sessions
+                    WHERE user_id = %s
+                    ORDER BY started_at DESC
+                    LIMIT 100
+                """, (user_id,))
             sessions_data = cur.fetchall()
 
     return render_page(SESSIONS_CONTENT, active="sessions", sessions=sessions_data)
