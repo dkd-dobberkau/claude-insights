@@ -1,9 +1,20 @@
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from app.database import get_db
 from app.auth import get_current_user
 from app.models import SessionCreate, SessionResponse
+
+
+def parse_timestamp(ts: str | None) -> datetime | None:
+    """Parse ISO 8601 timestamp string to datetime object."""
+    if ts is None:
+        return None
+    # Handle 'Z' suffix (replace with +00:00 for fromisoformat)
+    if ts.endswith('Z'):
+        ts = ts[:-1] + '+00:00'
+    return datetime.fromisoformat(ts)
 
 router = APIRouter(prefix="/api/v1/sessions", tags=["sessions"])
 
@@ -92,7 +103,7 @@ async def create_session(
                     {
                         "session_id": session.session_id,
                         "seq": msg.get("seq", 0),
-                        "ts": msg.get("timestamp"),
+                        "ts": parse_timestamp(msg.get("timestamp")),
                         "role": msg.get("role", "unknown"),
                         "content": msg.get("content", "")
                     }
