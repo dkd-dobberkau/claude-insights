@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.models import HealthResponse
-from app.routers import sessions, me, team
+from app.routers import sessions, me, team, plans
 
 app = FastAPI(
     title="dkd Claude Insights API",
@@ -11,6 +11,7 @@ app = FastAPI(
 app.include_router(sessions.router)
 app.include_router(me.router)
 app.include_router(team.router)
+app.include_router(plans.router)
 
 
 @app.get("/health", response_model=HealthResponse)

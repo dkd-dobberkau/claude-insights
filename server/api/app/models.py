@@ -67,3 +67,16 @@ class UserInfo(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     database: str
+
+
+class PlanCreate(BaseModel):
+    name: str
+    title: Optional[str] = None
+    content: str
+    created_at: Optional[datetime] = None
+
+
+class PlanResponse(BaseModel):
+    status: str
+    name: str
+    warnings: list[str] = Field(default_factory=list)
