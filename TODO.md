@@ -1,63 +1,74 @@
-# TODO
+# Claude Insights - Roadmap
 
-## Done
-- [x] Token usage tracking (per message, per session, per model)
-- [x] Token usage page with totals and breakdowns
+## Analytics & Visualisierungen
 
-## Analytics & Visualization
-- [ ] Token usage charts over time (daily/weekly/monthly)
-- [ ] Tool usage heatmap (which tools used when)
-- [ ] Session duration statistics
-- [ ] Cost estimation based on token counts
-- [ ] Project activity comparison
+- [ ] Token-Verbrauch Chart (Tages/Wochen/Monatsansicht)
+- [ ] Kosten-Schaetzung basierend auf aktuellen Token-Preisen
+- [ ] Heatmap der Nutzungszeiten (Wann wird am meisten gearbeitet?)
+- [ ] Model-Verteilung als Pie-Chart
+- [ ] Trend-Vergleich (diese Woche vs. letzte Woche)
 
-## Export Features
-- [ ] Export session as Markdown
-- [ ] Export session as PDF
-- [ ] Share session via link (anonymized)
-- [ ] Export tool call history as CSV
+## Erweiterte Suche
 
-## Search Enhancements
-- [ ] Date range filter
-- [ ] Project path filter
-- [ ] Tool filter (show only sessions using specific tools)
-- [ ] Regex search support
-- [ ] Search within session replay
+- [ ] Filter nach Datum-Range
+- [ ] Filter nach Projekt
+- [ ] Filter nach Model
+- [ ] Suche in Tool-Inputs/Outputs
+- [ ] Gespeicherte Suchen pro User
 
-## UI Improvements
-- [ ] Dark mode toggle
-- [ ] Code diff visualization for Edit tool calls
-- [ ] File tree view showing all files touched in session
-- [ ] Session bookmarks/favorites
-- [ ] Mobile responsive design
-- [ ] Collapsible tool call details
+## Session-Insights
 
-## Data Analysis
-- [ ] Auto-summarize sessions using LLM
-- [ ] Detect common workflow patterns
-- [ ] Track errors and failures
-- [ ] Session comparison (side-by-side)
-- [ ] "Similar sessions" recommendations
+- [ ] Automatische Session-Zusammenfassungen (KI-generiert)
+- [ ] Error-Rate Tracking pro Session/Projekt
+- [ ] Durchschnittliche Session-Dauer Statistik
+- [ ] Session-Vergleich (Side-by-Side)
+- [ ] "Aehnliche Sessions" Vorschlaege
 
-## Real-time Features
-- [ ] Live session monitoring (watch active session)
-- [ ] Webhook notifications for long-running sessions
-- [ ] Desktop notifications
+## Kosten-Tracking
 
-## Performance
-- [ ] Incremental import (only new log entries)
-- [ ] Better database indexing
-- [ ] Lazy loading for large sessions
-- [ ] Session message pagination
+- [ ] Kosten pro User/Projekt/Tag berechnen
+- [ ] Budget-Limits mit Warnungen
+- [ ] Monatliche Kostenuebersicht
+- [ ] Kosten-Prognose basierend auf Trend
+- [ ] Preiskonfiguration fuer verschiedene Models
 
-## Privacy & Security
-- [ ] Sensitive data redaction (API keys, passwords)
-- [ ] Session anonymization for sharing
-- [ ] Optional authentication layer
-- [ ] Data retention policies (auto-delete old sessions)
+## Export & Reports
 
-## Integrations
-- [ ] VS Code extension to view session from IDE
-- [ ] CLI tool for quick session lookup
-- [ ] REST API for external tools
-- [ ] Obsidian plugin for session notes
+- [ ] CSV-Export der Statistiken
+- [ ] PDF-Reports generieren
+- [ ] Woechentliche/monatliche Email-Reports
+- [ ] API-Endpunkte fuer externe Tools
+- [ ] Webhook-Integration
+
+## UX-Verbesserungen
+
+- [ ] Session-Favoriten/Bookmarks
+- [ ] Keyboard-Shortcuts Uebersicht (Modal mit ?)
+- [ ] Bessere Mobile-Ansicht (Responsive)
+- [ ] Dark/Light Theme Toggle
+- [ ] Einstellungen pro User (Sprache, Timezone)
+
+## Projekt-Management
+
+- [ ] Projekte gruppieren/taggen
+- [ ] Projekt-Vergleich Dashboard
+- [ ] Team-Activity-Feed
+- [ ] Projekt-spezifische Statistiken
+- [ ] Projekt-Umbenennung/Aliase
+
+## Technische Verbesserungen
+
+- [ ] WebSocket fuer Live-Updates
+- [ ] Caching fuer Dashboard-Queries
+- [ ] Pagination fuer grosse Listen
+- [ ] Rate-Limiting verbessern
+- [ ] Backup/Restore Funktion
+
+## Abgeschlossen
+
+- [x] Deutsche Zahlenformatierung (Punkte statt Kommas)
+- [x] ILIKE-basierte Suche mit Highlighting
+- [x] Autoplay fuer Session-Replay
+- [x] Admin kann alle Sessions sehen
+- [x] Plans-Ansicht
+- [x] Token-Details pro Model
