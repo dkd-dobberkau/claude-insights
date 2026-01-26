@@ -1160,6 +1160,31 @@ def tokens():
     )
 
 
+def create_search_snippet(content, query, max_len=200):
+    """Create a snippet with highlighted search term."""
+    import html
+    import re
+    if not content:
+        return ""
+    content = content.strip()
+    query_lower = query.lower()
+    content_lower = content.lower()
+    pos = content_lower.find(query_lower)
+    if pos == -1:
+        snippet = content[:max_len]
+    else:
+        start = max(0, pos - 50)
+        end = min(len(content), pos + len(query) + 150)
+        snippet = ("..." if start > 0 else "") + content[start:end] + ("..." if end < len(content) else "")
+    snippet = html.escape(snippet)
+    pattern = re.compile(re.escape(query), re.IGNORECASE)
+    snippet = pattern.sub(
+        lambda m: f'<mark style="background:#e94560;color:#fff">{m.group()}</mark>',
+        snippet
+    )
+    return snippet
+
+
 @app.route("/search")
 @login_required
 def search():
@@ -1171,7 +1196,7 @@ def search():
     if query:
         with get_db() as conn:
             with conn.cursor() as cur:
-                # Use PostgreSQL FTS with ts_headline for snippets
+                search_pattern = f"%{query}%"
                 if is_admin:
                     cur.execute("""
                         SELECT
@@ -1179,16 +1204,14 @@ def search():
                             m.timestamp,
                             s.project_name,
                             s.id as session_id,
-                            u.username,
-                            ts_headline('german', m.content, plainto_tsquery('german', %s),
-                                       'MaxWords=50, MinWords=25, StartSel=<mark style="background:#e94560;color:#fff">, StopSel=</mark>') as snippet
+                            u.username
                         FROM messages m
                         JOIN sessions s ON m.session_id = s.id
                         JOIN users u ON s.user_id = u.id
-                        WHERE m.search_vector @@ plainto_tsquery('german', %s)
-                        ORDER BY ts_rank(m.search_vector, plainto_tsquery('german', %s)) DESC
+                        WHERE m.content ILIKE %s
+                        ORDER BY m.timestamp DESC
                         LIMIT 100
-                    """, (query, query, query))
+                    """, (search_pattern,))
                 else:
                     cur.execute("""
                         SELECT
@@ -1196,17 +1219,20 @@ def search():
                             m.timestamp,
                             s.project_name,
                             s.id as session_id,
-                            NULL as username,
-                            ts_headline('german', m.content, plainto_tsquery('german', %s),
-                                       'MaxWords=50, MinWords=25, StartSel=<mark style="background:#e94560;color:#fff">, StopSel=</mark>') as snippet
+                            NULL as username
                         FROM messages m
                         JOIN sessions s ON m.session_id = s.id
                         WHERE s.user_id = %s
-                          AND m.search_vector @@ plainto_tsquery('german', %s)
-                        ORDER BY ts_rank(m.search_vector, plainto_tsquery('german', %s)) DESC
+                          AND m.content ILIKE %s
+                        ORDER BY m.timestamp DESC
                         LIMIT 100
-                    """, (query, user_id, query, query))
-                results = cur.fetchall()
+                    """, (user_id, search_pattern))
+                rows = cur.fetchall()
+                results = []
+                for row in rows:
+                    r = dict(row)
+                    r["snippet"] = create_search_snippet(r["content"], query)
+                    results.append(r)
 
     return render_page(SEARCH_CONTENT, active="search", query=query, results=results)
 
