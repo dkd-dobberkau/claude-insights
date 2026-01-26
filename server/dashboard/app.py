@@ -9,6 +9,16 @@ from functools import wraps
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
 
+
+def format_number_de(value):
+    """Format number with German locale (periods as thousand separators)."""
+    if value is None:
+        return "0"
+    return "{:,}".format(int(value)).replace(",", ".")
+
+
+app.jinja_env.filters["number_de"] = format_number_de
+
 # Support running under /dashboard/ subpath (Elestio deployment)
 APPLICATION_ROOT = os.environ.get("APPLICATION_ROOT", "/dashboard/")
 app.config["APPLICATION_ROOT"] = APPLICATION_ROOT
@@ -262,7 +272,7 @@ HOME_CONTENT = """
                 <td>{{ user.rank }}</td>
                 <td>{{ user.username }}</td>
                 <td>{{ user.session_count }}</td>
-                <td>{{ "{:,}".format(user.total_tokens) }}</td>
+                <td>{{ user.total_tokens|number_de }}</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -281,7 +291,7 @@ TOOLS_CONTENT = """
             {% for tool in tools %}
             <tr>
                 <td>{{ tool.tool_name }}</td>
-                <td>{{ "{:,}".format(tool.total_calls) }}</td>
+                <td>{{ tool.total_calls|number_de }}</td>
                 <td>{{ "{:.0%}".format(tool.success_rate or 0) }}</td>
                 <td style="width: 200px;">
                     <div class="bar" style="width: {{ (tool.total_calls / max_calls * 100) | int }}%"></div>
@@ -425,7 +435,7 @@ SESSIONS_CONTENT = """
                 <td>{{ s.project_name or '-' }}</td>
                 <td>{{ s.started_at.strftime('%d.%m.%Y %H:%M') if s.started_at else '-' }}</td>
                 <td>{{ s.total_messages }}</td>
-                <td>{{ "{:,}".format(s.total_tokens_in + s.total_tokens_out) }}</td>
+                <td>{{ (s.total_tokens_in + s.total_tokens_out)|number_de }}</td>
                 <td><a href="{{ url_for('replay', session_id=s.id) }}" class="btn btn-sm btn-primary">Replay</a></td>
             </tr>
             {% else %}
@@ -595,19 +605,19 @@ if (messages.length > 0) renderMessage(0);
 TOKENS_CONTENT = """
 <div class="stats-grid">
     <div class="stat-card">
-        <div class="stat-value">{{ "{:,}".format(totals.input_tokens) }}</div>
+        <div class="stat-value">{{ totals.input_tokens|number_de }}</div>
         <div class="stat-label">Eingabe-Tokens</div>
     </div>
     <div class="stat-card">
-        <div class="stat-value">{{ "{:,}".format(totals.output_tokens) }}</div>
+        <div class="stat-value">{{ totals.output_tokens|number_de }}</div>
         <div class="stat-label">Ausgabe-Tokens</div>
     </div>
     <div class="stat-card">
-        <div class="stat-value">{{ "{:,}".format(totals.cache_read) }}</div>
+        <div class="stat-value">{{ totals.cache_read|number_de }}</div>
         <div class="stat-label">Cache-Lesen</div>
     </div>
     <div class="stat-card">
-        <div class="stat-value">{{ "{:,}".format(totals.cache_creation) }}</div>
+        <div class="stat-value">{{ totals.cache_creation|number_de }}</div>
         <div class="stat-label">Cache-Erstellung</div>
     </div>
 </div>
@@ -629,11 +639,11 @@ TOKENS_CONTENT = """
             {% for row in by_model %}
             <tr>
                 <td><span style="font-family: monospace; background: var(--bg); padding: 0.2rem 0.5rem; border-radius: 4px;">{{ row.model }}</span></td>
-                <td style="text-align: right;">{{ "{:,}".format(row.input_tokens) }}</td>
-                <td style="text-align: right;">{{ "{:,}".format(row.output_tokens) }}</td>
-                <td style="text-align: right;">{{ "{:,}".format(row.cache_read) }}</td>
-                <td style="text-align: right;">{{ "{:,}".format(row.cache_creation) }}</td>
-                <td style="text-align: right;">{{ "{:,}".format(row.message_count) }}</td>
+                <td style="text-align: right;">{{ row.input_tokens|number_de }}</td>
+                <td style="text-align: right;">{{ row.output_tokens|number_de }}</td>
+                <td style="text-align: right;">{{ row.cache_read|number_de }}</td>
+                <td style="text-align: right;">{{ row.cache_creation|number_de }}</td>
+                <td style="text-align: right;">{{ row.message_count|number_de }}</td>
             </tr>
             {% else %}
             <tr><td colspan="6" style="text-align: center; color: var(--text-dim);">Keine Daten</td></tr>
@@ -660,9 +670,9 @@ TOKENS_CONTENT = """
             <tr>
                 <td style="font-family: monospace; font-size: 0.85rem;">{{ row.session_id[:20] }}...</td>
                 <td>{{ row.project_name or '-' }}</td>
-                <td style="text-align: right;">{{ "{:,}".format(row.input_tokens) }}</td>
-                <td style="text-align: right;">{{ "{:,}".format(row.output_tokens) }}</td>
-                <td style="text-align: right;">{{ "{:,}".format(row.input_tokens + row.output_tokens) }}</td>
+                <td style="text-align: right;">{{ row.input_tokens|number_de }}</td>
+                <td style="text-align: right;">{{ row.output_tokens|number_de }}</td>
+                <td style="text-align: right;">{{ (row.input_tokens + row.output_tokens)|number_de }}</td>
                 <td><a href="{{ url_for('replay', session_id=row.session_id) }}" class="btn btn-sm btn-secondary">Replay</a></td>
             </tr>
             {% else %}
