@@ -521,8 +521,8 @@ REPLAY_CONTENT = """
 </div>
 
 <script>
-const messages = {{ messages_json|safe }};
-const toolCalls = {{ tool_calls_json|safe }};
+const messages = {{ messages_list|tojson }};
+const toolCalls = {{ tool_calls_list|tojson }};
 let currentIndex = 0;
 
 function escapeHtml(text) {
@@ -1063,8 +1063,8 @@ def replay(session_id):
         REPLAY_CONTENT,
         active="sessions",
         messages=messages,
-        messages_json=json.dumps(messages_list),
-        tool_calls_json=json.dumps(tool_calls_list),
+        messages_list=messages_list,
+        tool_calls_list=tool_calls_list,
         share_level=share_level
     )
 
