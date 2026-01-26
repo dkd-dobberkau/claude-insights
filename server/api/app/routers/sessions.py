@@ -92,6 +92,11 @@ async def create_session(
 
         # Insert messages if full sharing
         if store_messages:
+            # Delete existing messages first to allow re-sync with updated content
+            await db.execute(
+                text("DELETE FROM messages WHERE session_id = :session_id"),
+                {"session_id": session.session_id}
+            )
             for msg in session.messages:
                 await db.execute(
                     text("""

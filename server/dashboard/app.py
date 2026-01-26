@@ -509,7 +509,7 @@ REPLAY_CONTENT = """
             {% for msg in messages %}
             <div class="timeline-item {{ msg.role }}" data-index="{{ loop.index0 }}" onclick="goTo({{ loop.index0 }})">
                 <div class="role">{{ msg.role }}</div>
-                <div class="preview">{{ msg.content[:40] }}{% if msg.content|length > 40 %}...{% endif %}</div>
+                {% if msg.content %}<div class="preview">{{ msg.content[:40]|e }}{% if msg.content|length > 40 %}...{% endif %}</div>{% endif %}
             </div>
             {% endfor %}
         </div>
