@@ -508,6 +508,13 @@ REPLAY_CONTENT = """
     <a href="{{ url_for('sessions_list') }}" class="btn btn-secondary">Zurueck</a>
     <button onclick="prev()" class="btn btn-secondary">Vorherige</button>
     <button onclick="next()" class="btn btn-secondary">Naechste</button>
+    <button onclick="toggleAutoplay()" id="autoplayBtn" class="btn btn-primary">Autoplay</button>
+    <select id="speedSelect" onchange="updateSpeed()" style="padding: 0.4rem; border-radius: 4px; background: var(--bg-card); color: var(--text); border: 1px solid var(--accent);">
+        <option value="3000">Langsam (3s)</option>
+        <option value="2000" selected>Normal (2s)</option>
+        <option value="1000">Schnell (1s)</option>
+        <option value="500">Sehr schnell (0.5s)</option>
+    </select>
     <span class="position" id="position">1 / {{ messages|length }}</span>
 </div>
 
@@ -587,9 +594,43 @@ function goTo(index) {
 function prev() { goTo(currentIndex - 1); }
 function next() { goTo(currentIndex + 1); }
 
+let autoplayInterval = null;
+let autoplaySpeed = 2000;
+
+function toggleAutoplay() {
+    const btn = document.getElementById('autoplayBtn');
+    if (autoplayInterval) {
+        clearInterval(autoplayInterval);
+        autoplayInterval = null;
+        btn.textContent = 'Autoplay';
+        btn.classList.remove('btn-danger');
+        btn.classList.add('btn-primary');
+    } else {
+        autoplayInterval = setInterval(() => {
+            if (currentIndex < messages.length - 1) {
+                next();
+            } else {
+                toggleAutoplay();
+            }
+        }, autoplaySpeed);
+        btn.textContent = 'Stop';
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-danger');
+    }
+}
+
+function updateSpeed() {
+    autoplaySpeed = parseInt(document.getElementById('speedSelect').value);
+    if (autoplayInterval) {
+        toggleAutoplay();
+        toggleAutoplay();
+    }
+}
+
 document.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowLeft') prev();
     if (e.key === 'ArrowRight') next();
+    if (e.key === ' ') { e.preventDefault(); toggleAutoplay(); }
 });
 
 if (messages.length > 0) renderMessage(0);
