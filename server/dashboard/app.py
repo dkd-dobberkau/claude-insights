@@ -11,11 +11,16 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
 
 def _load_version():
     try:
-        import json
-        with open("version.json") as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {"commit": "dev", "date": "-"}
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT commit_hash, deploy_date FROM build_info WHERE id = 1")
+                row = cur.fetchone()
+                if row:
+                    date_str = row["deploy_date"].strftime("%Y-%m-%d %H:%M UTC") if row["deploy_date"] else "-"
+                    return {"commit": row["commit_hash"] or "unknown", "date": date_str}
+    except Exception:
+        pass
+    return {"commit": "dev", "date": "-"}
 
 
 def format_number_de(value):
@@ -836,16 +841,7 @@ def render_page(content, **kwargs):
 
 @app.route("/health")
 def health():
-    import pathlib
-    version = _load_version()
-    version_path = pathlib.Path("version.json")
-    return jsonify({
-        "status": "ok",
-        "build": version,
-        "version_file_exists": version_path.exists(),
-        "version_file_path": str(version_path.resolve()),
-        "cwd": os.getcwd(),
-    })
+    return jsonify({"status": "ok", "build": _load_version()})
 
 
 @app.route("/login", methods=["GET", "POST"])
