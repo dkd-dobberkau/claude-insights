@@ -9,8 +9,9 @@ from functools import wraps
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
 
-APP_VERSION = "ef244c0"
+APP_VERSION = "210d674"
 APP_BUILD_DATE = "2026-02-19"
+
 
 
 def format_number_de(value):
