@@ -357,11 +357,11 @@ ADMIN_USERS_CONTENT = """
                 <td>{{ user.session_count }}</td>
                 <td>{{ user.last_seen_at.strftime('%d.%m.%Y %H:%M') if user.last_seen_at else '-' }}</td>
                 <td>
-                    <form method="POST" action="/admin/users/{{ user.id }}/rotate-key" style="display: inline;">
+                    <form method="POST" action="{{ url_for('admin_rotate_key', user_id=user.id) }}" style="display: inline;">
                         <button type="submit" class="btn btn-secondary btn-sm" onclick="return confirm('Key rotieren?')">Key rotieren</button>
                     </form>
                     {% if user.id != session.get('user_id') %}
-                    <form method="POST" action="/admin/users/{{ user.id }}/delete" style="display: inline;">
+                    <form method="POST" action="{{ url_for('admin_delete_user', user_id=user.id) }}" style="display: inline;">
                         <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('User wirklich loeschen?')">Loeschen</button>
                     </form>
                     {% endif %}
