@@ -17,10 +17,6 @@ def _load_version():
     except (FileNotFoundError, json.JSONDecodeError):
         return {"commit": "dev", "date": "-"}
 
-_version = _load_version()
-BUILD_COMMIT = _version["commit"]
-BUILD_DATE = _version["date"]
-
 
 def format_number_de(value):
     """Format number with German locale (periods as thousand separators)."""
@@ -829,10 +825,11 @@ PLAN_DETAIL_CONTENT = """
 def render_page(content, **kwargs):
     """Render a page with the base template."""
     full_template = BASE_TEMPLATE.replace("{% block content %}{% endblock %}", content)
+    version = _load_version()
     return render_template_string(
         full_template,
-        build_commit=BUILD_COMMIT,
-        build_date=BUILD_DATE,
+        build_commit=version["commit"],
+        build_date=version["date"],
         **kwargs
     )
 

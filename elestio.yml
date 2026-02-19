@@ -70,9 +70,8 @@ lifeCycle:
     echo "  Dashboard: https://[CI_CD_DOMAIN]/dashboard/"
 
   postDeployCommand: |
-    # Write build version info and restart dashboard to pick it up
+    # Write build version info (read by dashboard on each request via bind mount)
     echo "{\"commit\":\"$(git rev-parse --short HEAD)\",\"date\":\"$(date -u '+%Y-%m-%d %H:%M UTC')\"}" > version.json
-    docker compose restart dashboard
 
     # Install custom nginx config with dashboard routing (runs on every deploy)
     if [ -f server/nginx/elestio-nginx.conf ]; then
