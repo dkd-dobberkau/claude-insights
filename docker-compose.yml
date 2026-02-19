@@ -68,8 +68,6 @@ services:
     environment:
       DATABASE_URL: postgresql://insights:${DB_PASSWORD}@postgres/claude_insights
       SECRET_KEY: ${FLASK_SECRET_KEY}
-    volumes:
-      - ./version.json:/app/version.json:ro
     ports:
       - "8081:8081"  # Dashboard routed via /dashboard/ path
     depends_on:

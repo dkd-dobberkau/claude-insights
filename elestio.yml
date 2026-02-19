@@ -52,12 +52,15 @@ lifeCycle:
       echo "Created .env with secure credentials."
     fi
 
-    # Write build version info
-    echo "{\"commit\":\"$(git rev-parse --short HEAD)\",\"date\":\"$(date -u '+%Y-%m-%d %H:%M UTC')\"}" > version.json
-
     # Reset database volume and restart with credentials
     docker compose down -v 2>/dev/null || true
     docker compose up -d
+
+    # Write build version info into dashboard container
+    COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    DATE=$(date -u '+%Y-%m-%d %H:%M UTC')
+    echo "{\"commit\":\"$COMMIT\",\"date\":\"$DATE\"}" > /tmp/version.json
+    docker cp /tmp/version.json insights-dashboard:/app/version.json
 
     echo ""
     echo "Claude Insights Server deployed successfully!"
@@ -70,8 +73,11 @@ lifeCycle:
     echo "  Dashboard: https://[CI_CD_DOMAIN]/dashboard/"
 
   postDeployCommand: |
-    # Write build version info (read by dashboard on each request via bind mount)
-    echo "{\"commit\":\"$(git rev-parse --short HEAD)\",\"date\":\"$(date -u '+%Y-%m-%d %H:%M UTC')\"}" > version.json
+    # Write build version info directly into dashboard container
+    COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    DATE=$(date -u '+%Y-%m-%d %H:%M UTC')
+    echo "{\"commit\":\"$COMMIT\",\"date\":\"$DATE\"}" > /tmp/version.json
+    docker cp /tmp/version.json insights-dashboard:/app/version.json
 
     # Install custom nginx config with dashboard routing (runs on every deploy)
     if [ -f server/nginx/elestio-nginx.conf ]; then
