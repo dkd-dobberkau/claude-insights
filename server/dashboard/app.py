@@ -841,7 +841,18 @@ def render_page(content, **kwargs):
 
 @app.route("/health")
 def health():
-    return jsonify({"status": "ok", "build": _load_version()})
+    # Debug: show raw DB query result and any errors
+    debug = {}
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT commit_hash, deploy_date FROM build_info WHERE id = 1")
+                row = cur.fetchone()
+                debug["row"] = dict(row) if row else None
+                debug["row_found"] = row is not None
+    except Exception as e:
+        debug["error"] = str(e)
+    return jsonify({"status": "ok", "build": _load_version(), "debug": debug})
 
 
 @app.route("/login", methods=["GET", "POST"])
