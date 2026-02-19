@@ -1,0 +1,19 @@
+#!/bin/sh
+# Pre-commit hook: Update APP_VERSION and APP_BUILD_DATE in dashboard app.py
+# The version is set to the current HEAD hash (parent of the new commit).
+
+APP_FILE="server/dashboard/app.py"
+
+# Only update if files under server/dashboard/ are being committed
+if git diff --cached --name-only | grep -q "^server/dashboard/"; then
+    COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    DATE=$(date -u '+%Y-%m-%d')
+
+    # Update version constants in app.py
+    sed -i.bak "s/^APP_VERSION = .*/APP_VERSION = \"$COMMIT\"/" "$APP_FILE"
+    sed -i.bak "s/^APP_BUILD_DATE = .*/APP_BUILD_DATE = \"$DATE\"/" "$APP_FILE"
+    rm -f "${APP_FILE}.bak"
+
+    # Re-stage the modified file
+    git add "$APP_FILE"
+fi
