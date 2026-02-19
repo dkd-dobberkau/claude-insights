@@ -9,20 +9,8 @@ from functools import wraps
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
 
-def _load_version():
-    try:
-        with get_db() as conn:
-            with conn.cursor() as cur:
-                cur.execute("CREATE TABLE IF NOT EXISTS build_info (id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1), commit_hash VARCHAR(40), deploy_date TIMESTAMPTZ DEFAULT NOW())")
-                conn.commit()
-                cur.execute("SELECT commit_hash, deploy_date FROM build_info WHERE id = 1")
-                row = cur.fetchone()
-                if row:
-                    date_str = row["deploy_date"].strftime("%Y-%m-%d %H:%M UTC") if row["deploy_date"] else "-"
-                    return {"commit": row["commit_hash"] or "unknown", "date": date_str}
-    except Exception:
-        pass
-    return {"commit": "dev", "date": "-"}
+APP_VERSION = "ef244c0"
+APP_BUILD_DATE = "2026-02-19"
 
 
 def format_number_de(value):
@@ -832,18 +820,17 @@ PLAN_DETAIL_CONTENT = """
 def render_page(content, **kwargs):
     """Render a page with the base template."""
     full_template = BASE_TEMPLATE.replace("{% block content %}{% endblock %}", content)
-    version = _load_version()
     return render_template_string(
         full_template,
-        build_commit=version["commit"],
-        build_date=version["date"],
+        build_commit=APP_VERSION,
+        build_date=APP_BUILD_DATE,
         **kwargs
     )
 
 
 @app.route("/health")
 def health():
-    return jsonify({"status": "ok", "build": _load_version()})
+    return jsonify({"status": "ok", "version": APP_VERSION})
 
 
 @app.route("/login", methods=["GET", "POST"])

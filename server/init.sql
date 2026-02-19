@@ -108,13 +108,6 @@ CREATE TABLE IF NOT EXISTS plans (
     UNIQUE(user_id, name)
 );
 
--- Build/deploy metadata (single-row table)
-CREATE TABLE IF NOT EXISTS build_info (
-    id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
-    commit_hash VARCHAR(40),
-    deploy_date TIMESTAMPTZ DEFAULT NOW()
-);
-
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_started ON sessions(started_at);
