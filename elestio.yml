@@ -56,9 +56,9 @@ lifeCycle:
     docker compose down -v 2>/dev/null || true
     docker compose up -d
 
-    # Write build version info to database (table created by init.sql)
+    # Write build version info to database
     COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-    docker compose exec -T postgres psql -U insights -d claude_insights -c \
+    docker exec insights-db psql -U insights -d claude_insights -c \
       "INSERT INTO build_info (id, commit_hash) VALUES (1, '$COMMIT') ON CONFLICT (id) DO UPDATE SET commit_hash = EXCLUDED.commit_hash, deploy_date = NOW();"
 
     echo ""
@@ -72,9 +72,9 @@ lifeCycle:
     echo "  Dashboard: https://[CI_CD_DOMAIN]/dashboard/"
 
   postDeployCommand: |
-    # Write build version info to database
+    # Write build version info to database (use container name, not docker compose exec)
     COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-    docker compose exec -T postgres psql -U insights -d claude_insights -c \
+    docker exec insights-db psql -U insights -d claude_insights -c \
       "CREATE TABLE IF NOT EXISTS build_info (id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1), commit_hash VARCHAR(40), deploy_date TIMESTAMPTZ DEFAULT NOW()); INSERT INTO build_info (id, commit_hash) VALUES (1, '$COMMIT') ON CONFLICT (id) DO UPDATE SET commit_hash = EXCLUDED.commit_hash, deploy_date = NOW();"
 
     # Install custom nginx config with dashboard routing (runs on every deploy)
