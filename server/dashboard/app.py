@@ -836,7 +836,16 @@ def render_page(content, **kwargs):
 
 @app.route("/health")
 def health():
-    return jsonify({"status": "ok"})
+    import pathlib
+    version = _load_version()
+    version_path = pathlib.Path("version.json")
+    return jsonify({
+        "status": "ok",
+        "build": version,
+        "version_file_exists": version_path.exists(),
+        "version_file_path": str(version_path.resolve()),
+        "cwd": os.getcwd(),
+    })
 
 
 @app.route("/login", methods=["GET", "POST"])
