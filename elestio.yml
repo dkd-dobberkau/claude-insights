@@ -67,6 +67,12 @@ lifeCycle:
     echo "  Dashboard: https://[CI_CD_DOMAIN]/dashboard/"
 
   postDeployCommand: |
+    # Set build version info in .env
+    sed -i '/^BUILD_/d' .env 2>/dev/null || true
+    echo "BUILD_COMMIT=$(git rev-parse --short HEAD)" >> .env
+    echo "BUILD_DATE=$(date -u '+%Y-%m-%d %H:%M UTC')" >> .env
+    docker compose up -d dashboard
+
     # Install custom nginx config with dashboard routing (runs on every deploy)
     if [ -f server/nginx/elestio-nginx.conf ]; then
       echo "Installing custom nginx config..."

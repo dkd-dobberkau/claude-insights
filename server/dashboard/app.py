@@ -9,6 +9,9 @@ from functools import wraps
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
 
+BUILD_COMMIT = os.environ.get("BUILD_COMMIT", "dev")
+BUILD_DATE = os.environ.get("BUILD_DATE", "-")
+
 
 def format_number_de(value):
     """Format number with German locale (periods as thousand separators)."""
@@ -235,6 +238,9 @@ BASE_TEMPLATE = """
         {% endif %}
         {% endwith %}
         {% block content %}{% endblock %}
+        <footer style="margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--accent); text-align: center; color: var(--text-dim); font-size: 0.75rem;">
+            Build {{ build_commit }} &middot; {{ build_date }}
+        </footer>
     </div>
 </body>
 </html>
@@ -814,7 +820,12 @@ PLAN_DETAIL_CONTENT = """
 def render_page(content, **kwargs):
     """Render a page with the base template."""
     full_template = BASE_TEMPLATE.replace("{% block content %}{% endblock %}", content)
-    return render_template_string(full_template, **kwargs)
+    return render_template_string(
+        full_template,
+        build_commit=BUILD_COMMIT,
+        build_date=BUILD_DATE,
+        **kwargs
+    )
 
 
 @app.route("/health")
