@@ -9,8 +9,17 @@ from functools import wraps
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
 
-BUILD_COMMIT = os.environ.get("BUILD_COMMIT", "dev")
-BUILD_DATE = os.environ.get("BUILD_DATE", "-")
+def _load_version():
+    try:
+        import json
+        with open("version.json") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {"commit": "dev", "date": "-"}
+
+_version = _load_version()
+BUILD_COMMIT = _version["commit"]
+BUILD_DATE = _version["date"]
 
 
 def format_number_de(value):

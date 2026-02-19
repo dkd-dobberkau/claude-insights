@@ -52,6 +52,9 @@ lifeCycle:
       echo "Created .env with secure credentials."
     fi
 
+    # Write build version info
+    echo "{\"commit\":\"$(git rev-parse --short HEAD)\",\"date\":\"$(date -u '+%Y-%m-%d %H:%M UTC')\"}" > version.json
+
     # Reset database volume and restart with credentials
     docker compose down -v 2>/dev/null || true
     docker compose up -d
@@ -67,11 +70,8 @@ lifeCycle:
     echo "  Dashboard: https://[CI_CD_DOMAIN]/dashboard/"
 
   postDeployCommand: |
-    # Set build version info in .env
-    sed -i '/^BUILD_/d' .env 2>/dev/null || true
-    echo "BUILD_COMMIT=$(git rev-parse --short HEAD)" >> .env
-    echo "BUILD_DATE=$(date -u '+%Y-%m-%d %H:%M UTC')" >> .env
-    docker compose up -d dashboard
+    # Write build version info (mounted into dashboard container)
+    echo "{\"commit\":\"$(git rev-parse --short HEAD)\",\"date\":\"$(date -u '+%Y-%m-%d %H:%M UTC')\"}" > version.json
 
     # Install custom nginx config with dashboard routing (runs on every deploy)
     if [ -f server/nginx/elestio-nginx.conf ]; then
